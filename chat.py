@@ -188,7 +188,7 @@ RESUME_BRIEFING = """
 - This chat resumes an earlier conversation (the session was restarted). Before your hello, read {cdir}/transcript.md so you know what was discussed and decided; don't summarize it unless asked."""
 
 RESUMED_NOTE = """\
-The council chat "{title}" has resumed after a restart and you are still "{name}". The log is {cdir}/transcript.md; `council post --as {name} '...'` still posts to it. Nothing to do now: wait for the next message."""
+The council chat "{title}" has resumed after a restart and you are still "{name}". The log is {cdir}/transcript.md; you still post to it with `council post --as {name} - <<'COUNCIL'`, ending with a COUNCIL line. Nothing to do now: wait for the next message."""
 
 DELIVERY = """\
 New council chat messages (you are "{name}"):

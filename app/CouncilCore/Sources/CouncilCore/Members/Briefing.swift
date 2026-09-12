@@ -31,7 +31,7 @@ public enum Briefing {
     """
 
     public static let resumedNoteTemplate = """
-    The council chat "{title}" has resumed after a restart and you are still "{name}". The log is {cdir}/transcript.md; `council post --as {name} '...'` still posts to it. Nothing to do now: wait for the next message.
+    The council chat "{title}" has resumed after a restart and you are still "{name}". The log is {cdir}/transcript.md; you still post to it with `council post --as {name} - <<'COUNCIL'`, ending with a COUNCIL line. Nothing to do now: wait for the next message.
     """
 
     public static let deliveryTemplate = """
