@@ -1,0 +1,42 @@
+{
+  "created": "2026-09-09T15:27:36",
+  "question_preview": "Is it worth adding type hints to a 5k-line Python codebase that has no tests? Answer in about 120 words.",
+  "members": {
+    "codex": {
+      "backend": "codex",
+      "label": "Codex GPT-6 Astra",
+      "model": "",
+      "name": "codex",
+      "alias": "Model A"
+    },
+    "gemini": {
+      "backend": "openai",
+      "label": "Gemini 3.8 Flash",
+      "base_url": "https://openrouter.ai/api/v1",
+      "model": "google/gemini-3.8-flash",
+      "api_key_file": "~/.pi/agent/models.json",
+      "api_key_json": "providers.openrouter.apiKey",
+      "max_tokens": 8192,
+      "name": "gemini",
+      "alias": "Model B"
+    }
+  },
+  "order": [
+    "codex",
+    "gemini"
+  ],
+  "moderator": {
+    "backend": "openai",
+    "label": "Gemini 3.8 Flash",
+    "base_url": "https://openrouter.ai/api/v1",
+    "model": "google/gemini-3.8-flash",
+    "api_key_file": "~/.pi/agent/models.json",
+    "api_key_json": "providers.openrouter.apiKey",
+    "max_tokens": 8192,
+    "name": "gemini"
+  },
+  "rounds": 2,
+  "anonymous": true,
+  "length": "about 300-500 words",
+  "attachments": []
+}

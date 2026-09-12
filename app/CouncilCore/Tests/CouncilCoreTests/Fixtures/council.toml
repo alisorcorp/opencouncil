@@ -1,0 +1,61 @@
+# council.toml — members of the council and their defaults.
+# backend: "claude" (Claude Code CLI), "codex" (Codex CLI), "openai" (OpenAI-compatible HTTP, e.g. LM Studio)
+
+[defaults]
+members = ["claude", "codex", "deepseek"]
+moderator = "claude"
+rounds = 1
+anonymous = false
+length = "about 300-500 words"
+
+[chat]
+members = ["claude", "codex", "deepseek"]   # `council session NAME`: chat pane left, these stacked right
+budget = 12                               # max member replies per message you send
+effort = "medium"                         # reasoning effort for claude and codex (low/medium/high/xhigh/default)
+
+[members.claude]
+backend = "claude"
+label = "Claude Fable 5.1"
+model = ""                # "", "opus", "sonnet", or a full model id
+chat_args = ["--dangerously-skip-permissions"]   # interactive session flags for `council chat`
+
+[members.claude-opus]
+backend = "claude"
+label = "Claude Opus 5"
+model = "opus"
+
+[members.codex]
+backend = "codex"
+label = "Codex GPT-6 Astra"
+model = ""
+chat_args = ["--yolo"]
+
+[members.deepseek]
+backend = "pi"                               # pi (pi-mono) agent: file/bash tools, OpenRouter via pi's own config
+label = "DeepSeek V4.1 Flash"
+provider = "openrouter"
+model = "deepseek/deepseek-v4.1-flash"       # registered in ~/.pi/agent/models.json under openrouter
+chat_args = []                               # extra interactive pi flags for `council session`
+
+[members.gemini]                             # optional: council ask -m claude,codex,gemini
+backend = "pi"
+label = "Gemini 3.8 Flash"
+provider = "openrouter"
+model = "google/gemini-3.8-flash"
+
+# Direct HTTP alternative without tools (any OpenAI-compatible endpoint):
+# [members.gemini-api]
+# backend = "openai"
+# label = "Gemini 3.8 Flash (API)"
+# base_url = "https://openrouter.ai/api/v1"
+# model = "google/gemini-3.8-flash"
+# api_key_file = "~/.pi/agent/models.json"
+# api_key_json = "providers.openrouter.apiKey"
+# max_tokens = 8192
+
+# Any OpenAI-compatible server works, e.g. LM Studio:
+# [members.gemma]
+# backend = "openai"
+# label = "Gemma 4 26B (local)"
+# base_url = "http://localhost:1234/v1"
+# model = "gemma-4-26b-a4b-it-qat-mlx"

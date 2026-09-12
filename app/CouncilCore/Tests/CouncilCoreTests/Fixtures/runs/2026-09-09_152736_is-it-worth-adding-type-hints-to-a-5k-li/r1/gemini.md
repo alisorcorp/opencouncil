@@ -1,0 +1,5 @@
+**Yes.** In a testless 5,000-line codebase, adding type hints is worth it and often yields a faster initial return than writing unit tests from scratch.
+
+Running a static type checker like `mypy` or `pyright` is strictly non-invasive: adding hints cannot introduce runtime regressions. For a codebase this size (roughly 10 to 15 hours of effort), typing immediately surfaces latent bugs—such as unhandled `None` values, bad method calls, and mismatched argument types—without executing a single line of untested code. Crucially, types provide verifiable documentation that makes subsequent test writing much faster.
+
+**Recommendation:** Start with loose type-checking settings. Annotate external inputs, core data models, and public function signatures first, using the uncovered issues to prioritize where end-to-end regression tests are needed most.

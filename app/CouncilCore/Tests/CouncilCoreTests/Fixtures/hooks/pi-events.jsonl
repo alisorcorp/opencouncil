@@ -1,0 +1,7 @@
+{"ts":"2026-09-10T16:00:00","member":"deepseek","backend":"pi","hook":"session_start","payload":{"reason":"startup","session_id":"a1b2c3d4-0000-4000-8000-000000000000"}}
+{"ts":"2026-09-10T16:00:04","member":"deepseek","backend":"pi","hook":"input","payload":{"source":"interactive"}}
+{"ts":"2026-09-10T16:00:05","member":"deepseek","backend":"pi","hook":"agent_start","payload":{}}
+{"ts":"2026-09-10T16:00:06","member":"deepseek","backend":"pi","hook":"tool_execution_start","payload":{"toolName":"bash","args":{"command":"council log --tail 5"}}}
+{"ts":"2026-09-10T16:00:07","member":"deepseek","backend":"pi","hook":"tool_execution_end","payload":{"toolName":"bash","isError":false}}
+{"ts":"2026-09-10T16:00:08","member":"deepseek","backend":"pi","hook":"agent_end","payload":{"messages":4,"lastMessage":"Posted my reply."}}
+{"ts":"2026-09-10T16:00:09","member":"deepseek","backend":"pi","hook":"project_trust","payload":{"path":"/Users/x/proj"}}

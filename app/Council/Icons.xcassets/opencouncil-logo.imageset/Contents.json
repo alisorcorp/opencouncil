@@ -1,0 +1,24 @@
+{
+  "images": [
+    {
+      "filename": "opencouncil-logo-light@2x.png",
+      "idiom": "universal",
+      "scale": "2x"
+    },
+    {
+      "appearances": [
+        {
+          "appearance": "luminosity",
+          "value": "dark"
+        }
+      ],
+      "filename": "opencouncil-logo-dark@2x.png",
+      "idiom": "universal",
+      "scale": "2x"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  }
+}

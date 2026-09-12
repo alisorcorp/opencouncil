@@ -1,0 +1,27 @@
+# personal data: conversation logs and verdict runs live here but are not source. Anchored to the repo root so
+# the test fixtures under app/CouncilCore/Tests/.../Fixtures/chats and /runs stay in git.
+/chats/
+/runs/
+
+# python
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
+
+# app build products and the xcodeproj generated from app/project.yml
+.build/
+app/Council.xcodeproj/
+*.xcuserstate
+
+# per-machine signing identity (see app/signing.local.example)
+app/signing.local
+
+# working notes and design sources: kept on disk, not part of the published project
+/ASTRA-AUDIT.md
+/HANDOFF.md
+/HANDOFF.receipt.json
+/docs/*.psd
+/docs/*.ai
+/docs/fonts/

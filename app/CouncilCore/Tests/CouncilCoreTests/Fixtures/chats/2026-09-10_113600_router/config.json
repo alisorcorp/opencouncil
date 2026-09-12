@@ -1,0 +1,59 @@
+{
+  "created": "2026-09-10T11:36:00",
+  "cwd": "/Users/you/Code/demo",
+  "title": "router",
+  "members": {
+    "claude": {
+      "backend": "claude",
+      "label": "Claude Fable 5.1 · medium",
+      "model": "",
+      "chat_args": [
+        "--dangerously-skip-permissions",
+        "--effort",
+        "medium"
+      ],
+      "name": "claude",
+      "chat_kind": "herdr",
+      "agent": "claude-c3600"
+    },
+    "codex": {
+      "backend": "codex",
+      "label": "Codex GPT-6 Astra · medium",
+      "model": "",
+      "chat_args": [
+        "--yolo",
+        "-c",
+        "model_reasoning_effort=\"medium\""
+      ],
+      "name": "codex",
+      "chat_kind": "herdr",
+      "agent": "codex-c3600"
+    },
+    "deepseek": {
+      "backend": "pi",
+      "label": "DeepSeek V4.1 Flash · medium",
+      "provider": "openrouter",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "chat_args": [
+        "--provider",
+        "openrouter",
+        "--model",
+        "deepseek/deepseek-v4.1-flash",
+        "--no-session",
+        "--offline",
+        "--thinking",
+        "medium"
+      ],
+      "name": "deepseek",
+      "chat_kind": "herdr",
+      "agent": "deepseek-c3600"
+    }
+  },
+  "order": [
+    "claude",
+    "codex",
+    "deepseek"
+  ],
+  "budget": 12,
+  "effort": "medium"
+}
