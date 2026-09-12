@@ -49,9 +49,8 @@ cd opencouncil
 Your chats and verdict runs are saved inside it, under `chats/` and `runs/`, and they're gitignored. If you move
 the folder later, run the script again.
 
-The script also checks for `prompt_toolkit` and `herdr` and complains about both. The app needs neither, but it
-refuses to finish without `prompt_toolkit`, so for now `pip3 install prompt_toolkit` and ignore what it says
-about herdr.
+It also lists the agent CLIs it can find, and mentions `prompt_toolkit` and `herdr` if they're missing. Both of
+those are only for the terminal version, so ignore them if you're here for the app.
 
 Then build the app:
 
