@@ -120,6 +120,14 @@ answer in that member's terminal. Claude Code does the same in a folder it hasn'
 override that's supposed to pre-approve this, and it doesn't work: tested against codex-cli 0.154.0, the dialog
 appears anyway. Answering it once per folder is enough, since Codex remembers.
 
+**The app freezes for up to about 20 seconds now and then, in a busy chat.** It comes back on its own and
+nothing is lost. macOS confirmed one of these, logging the main thread as unresponsive for over two seconds
+during a four-member conversation while a member was mid-reply. Two likely causes have been measured and
+ruled out, so what's left is still a guess. Every member's terminal keeps parsing its output on the main
+thread whether or not you're looking at it, and Codex repaints its whole screen while it thinks. There's a
+watchdog behind `COUNCIL_WATCHDOG=1` that samples the app while it's stuck and writes the stack to
+`~/Library/Logs/Council`. If you hit this, turn it on and send what it writes.
+
 **No signed download.** Distributing a built app needs a Developer ID certificate and notarization, which this
 project doesn't have yet. Building from source is the only route.
 

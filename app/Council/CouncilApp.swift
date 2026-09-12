@@ -11,9 +11,13 @@ struct CouncilApp: App {
 
     init() {
         // Developer entry points; each takes over the process and exits when done.
-        if !SnapshotCommand.runIfRequested(), !DriveCommand.runIfRequested(), !SlotsCommand.runIfRequested() {
+        if !SnapshotCommand.runIfRequested(), !DriveCommand.runIfRequested(), !SlotsCommand.runIfRequested(),
+           !StallCommand.runIfRequested() {
             _ = AskCommand.runIfRequested()
         }
+        // Off unless COUNCIL_WATCHDOG is set. Samples the process while the main thread is stuck, which is
+        // the only moment the stack is any use.
+        StallWatchdog.startIfRequested()
     }
 
     var body: some Scene {
