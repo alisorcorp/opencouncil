@@ -15,8 +15,10 @@ struct CouncilApp: App {
            !StallCommand.runIfRequested() {
             _ = AskCommand.runIfRequested()
         }
-        // Off unless COUNCIL_WATCHDOG is set. Samples the process while the main thread is stuck, which is
-        // the only moment the stack is any use.
+        // Off unless COUNCIL_WATCHDOG is set. Samples the process while the main thread is stuck, which is the
+        // only moment the stack is any use. The return value is deliberately dropped: an `App` struct has
+        // nowhere to keep it that outlives this call, so the watchdog owns itself for the life of the process
+        // and is reached again through `StallWatchdog.running`.
         StallWatchdog.startIfRequested()
     }
 

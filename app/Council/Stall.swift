@@ -9,15 +9,15 @@ import CouncilCore
 /// disk before the main thread came back, and does the stack in it show the main thread inside the block?
 ///
 /// Run it with `app/build.sh` output directly, e.g.
-/// `DEVELOPER_DIR=… .build/Build/Products/Debug/Council.app/Contents/MacOS/Council --stall 6`.
+/// `.build/DerivedData/Build/Products/Debug/Council.app/Contents/MacOS/Council --stall 8`.
 enum StallCommand {
     static func runIfRequested(arguments: [String] = CommandLine.arguments) -> Bool {
         guard let i = arguments.firstIndex(of: "--stall") else { return false }
-        let seconds = arguments.count > i + 1 ? (Double(arguments[i + 1]) ?? 6) : 6
+        let seconds = arguments.count > i + 1 ? (Double(arguments[i + 1]) ?? 8) : 8
         // Deliberately not run from `init()`: before the run loop starts nothing drains the main queue, so a
         // ping would go unanswered whether the main thread was stuck or idle, and the test would pass without
         // ever having measured anything.
-        Task { @MainActor in exit(await run(seconds: max(seconds, 3))) }
+        Task { @MainActor in exit(await run(seconds: max(seconds, 7))) }
         return true
     }
 
@@ -33,23 +33,25 @@ enum StallCommand {
         let reports = StallWatchdog.defaultReports
         try? FileManager.default.createDirectory(at: reports, withIntermediateDirectories: true)
         let before = names(in: reports)
-        let sampleSeconds = 2
-        let threshold = 1.0
-        let watchdog = StallWatchdog(options: .init(interval: 0.25, threshold: threshold),
-                                     sample: StallWatchdog.spawningSample(into: reports, seconds: sampleSeconds))
-        watchdog.start()
+
+        // Started the way the app starts it, return value dropped and all. A watchdog nobody owns deallocates
+        // before its first tick, and this test used to keep one in a local of its own — so it passed while the
+        // shipped app watched nothing. Going through the same entry point is what closes that gap: if the
+        // ownership breaks again, no report is written and every check below fails.
+        _ = StallWatchdog.startIfRequested(environment: ["COUNCIL_WATCHDOG": "1"], reports: reports)
+        expect(StallWatchdog.running != nil, "the watchdog survived the call that started it")
         log("reports: \(reports.path)")
-        log("threshold \(threshold)s, sample \(sampleSeconds)s, blocking for \(seconds)s")
+        log("blocking for \(seconds)s, on the shipped settings: reported after 1.5s, sampled for 3s")
 
         // A watchdog that fires on a healthy app is worse than none, so the quiet case goes first. The main
         // actor is free for longer than the threshold here, and every ping comes straight back.
-        try? await Task.sleep(for: .seconds(threshold + 1))
+        try? await Task.sleep(for: .seconds(2.5))
         expect(names(in: reports).subtracting(before).isEmpty, "nothing is reported while the app is answering")
 
         let blockedFrom = Date()
         block(for: seconds)                             // this is what a beachball is
         let wokeAt = Date()
-        watchdog.stop()
+        StallWatchdog.running?.stop()
         expect(wokeAt.timeIntervalSince(blockedFrom) >= seconds,
                "the main thread was blocked for \(String(format: "%.1f", wokeAt.timeIntervalSince(blockedFrom)))s")
 

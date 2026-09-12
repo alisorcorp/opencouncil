@@ -127,11 +127,44 @@ final class StallWatchdogTests: XCTestCase {
         XCTAssertFalse(ends.everSampledWithNothingOutstanding)
     }
 
+    /// The app starts the watchdog and throws the reference away, which is the only thing it can sensibly do
+    /// from `CouncilApp.init()`. Every closure in the loop holds `self` weakly, so unless something owns it for
+    /// the life of the process the whole thing deallocates the moment the call returns and the app watches
+    /// nothing. `--stall` cannot see this: it keeps its own instance in a local for the length of the test.
+    func testItStaysAliveAfterTheCallerLetsGo() {
+        let reports = Self.scratch()
+        weak var afterTheCallReturns: StallWatchdog?
+        do {
+            let started = StallWatchdog.startIfRequested(environment: ["COUNCIL_WATCHDOG": "1"], reports: reports)
+            XCTAssertNotNil(started)
+            afterTheCallReturns = started
+        }                                          // exactly what `_ = StallWatchdog.startIfRequested()` does
+        XCTAssertNotNil(afterTheCallReturns,
+                        "nothing owns the watchdog, so the app starts one and it deallocates immediately")
+        XCTAssertNotNil(StallWatchdog.running, "the process has no watchdog to reach")
+        StallWatchdog.running?.stop()
+        XCTAssertNil(StallWatchdog.running, "stopping it left the process holding a dead watchdog")
+    }
+
+    /// Two of them sampling the same process would each report the other.
+    func testAskingTwiceGivesTheSameWatchdog() {
+        let reports = Self.scratch()
+        let first = StallWatchdog.startIfRequested(environment: ["COUNCIL_WATCHDOG": "1"], reports: reports)
+        let second = StallWatchdog.startIfRequested(environment: ["COUNCIL_WATCHDOG": "1"], reports: reports)
+        XCTAssertNotNil(first)
+        XCTAssertTrue(first === second, "a second call started a second watchdog")
+        first?.stop()
+    }
+
+    private static func scratch() -> URL {
+        URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("council-watchdog-\(UUID().uuidString)")
+    }
+
     /// Spawning `sample` at a process in trouble is the right trade while chasing a stall and the wrong one
     /// for everybody else, so absence and every falsey spelling have to mean off.
     func testItOnlyRunsWhenAskedFor() throws {
-        let reports = URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent("council-watchdog-\(UUID().uuidString)")
+        let reports = Self.scratch()
         for environment in [[:], ["COUNCIL_WATCHDOG": ""], ["COUNCIL_WATCHDOG": "0"],
                             ["COUNCIL_WATCHDOG": "no"], ["SOMETHING_ELSE": "1"]] as [[String: String]] {
             XCTAssertNil(StallWatchdog.startIfRequested(environment: environment, reports: reports),

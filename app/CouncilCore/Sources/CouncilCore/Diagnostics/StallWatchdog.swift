@@ -74,6 +74,11 @@ public final class StallWatchdog: @unchecked Sendable {
 
     public func stop() {
         lock.lock(); stopped = true; lock.unlock()
+        // Taken after the instance lock is released, never with it held: `startIfRequested` takes these two in
+        // the other order.
+        Self.ownerLock.lock()
+        if Self.owned === self { Self.owned = nil }
+        Self.ownerLock.unlock()
     }
 
     private var isStopped: Bool {
@@ -148,13 +153,37 @@ public final class StallWatchdog: @unchecked Sendable {
         }
     }
 
+    // MARK: the one this process has
+
+    /// Every closure in the loop holds `self` weakly, which is what makes `stop()` actually stop, and which
+    /// leaves nobody holding the watchdog. The app starts one from `CouncilApp.init()` and an `App` struct has
+    /// nowhere to put it that outlives the call, so without an owner here the watchdog deallocated before its
+    /// first tick and the app watched nothing. One per process is the right number anyway: two of them would
+    /// spend their time sampling each other.
+    private static let ownerLock = NSLock()
+    nonisolated(unsafe) private static var owned: StallWatchdog?
+
+    /// The watchdog this process is running, if it was asked for one. Reaching it through here is also how a
+    /// caller that discarded the return value stops it again.
+    public static var running: StallWatchdog? {
+        ownerLock.lock(); defer { ownerLock.unlock() }
+        return owned
+    }
+
     /// `COUNCIL_WATCHDOG=1`. Anything falsey, and absence, leaves the app with no watchdog at all.
     @discardableResult
     public static func startIfRequested(environment: [String: String] = ProcessInfo.processInfo.environment,
                                         reports: URL = StallWatchdog.defaultReports) -> StallWatchdog? {
         let asked = environment["COUNCIL_WATCHDOG"] ?? ""
         guard ["1", "true", "yes", "on"].contains(asked.lowercased()) else { return nil }
+        ownerLock.lock()
+        if let existing = owned {
+            ownerLock.unlock()
+            return existing
+        }
         let watchdog = StallWatchdog(sample: spawningSample(into: reports))
+        owned = watchdog
+        ownerLock.unlock()
         watchdog.start()
         return watchdog
     }
