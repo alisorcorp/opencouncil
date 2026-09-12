@@ -95,7 +95,7 @@ final class BriefingTests: XCTestCase {
         XCTAssertTrue(text.hasPrefix("New council chat messages (you are \"codex\"):\n\n"))
         XCTAssertTrue(text.contains("[user → @claude @codex] what do you think?\n\n[claude → @codex] @codex disagrees with me\n\n[you] my turn"))
         XCTAssertFalse(text.contains("budget reached"), "notes are not delivered")
-        XCTAssertTrue(text.hasSuffix("post nothing if you have nothing to add)."))
+        XCTAssertTrue(text.hasSuffix("post nothing if you have nothing to add."))
     }
 
     func testWrappingAppendsTheFinalWordNote() {
@@ -172,11 +172,16 @@ final class BriefingTests: XCTestCase {
     }
 
     /// A member that posts through a double-quoted shell string hands its message to the shell first. One did,
-    /// and `$0` became `/bin/bash` in the middle of a sentence.
+    /// and `$0` became `/bin/bash` in the middle of a sentence. Single quotes fix that and break on something
+    /// commoner: on 2026-09-12 kimi followed the `'...'` example these per-turn prompts used to show, and its
+    /// post died on an apostrophe with "unexpected EOF while looking for matching `'". The briefing had always
+    /// taught the heredoc; the prompts a member reads on every later turn had not, so the last thing it saw won.
     func testTheBriefingSaysHowToQuoteAPost() {
         XCTAssertTrue(Briefing.briefingTemplate.contains("'your message'"), "the example is still double-quoted")
         XCTAssertTrue(Briefing.briefingTemplate.contains("expands $variables"), "nothing says why it matters")
-        XCTAssertTrue(Briefing.deliveryTemplate.contains("council post --as {name} '...'"),
-                      "the reply instruction still shows double quotes")
+        XCTAssertTrue(Briefing.deliveryTemplate.contains("- <<'COUNCIL'"),
+                      "the reply instruction shows a quoted form, which breaks on an apostrophe")
+        XCTAssertTrue(Briefing.reactionTemplate.contains("- <<'COUNCIL'"), "so does the reaction nudge")
+        XCTAssertTrue(Briefing.retryTemplate.contains("- <<'COUNCIL'"), "so does the retry nudge")
     }
 }

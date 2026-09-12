@@ -39,7 +39,11 @@ public enum Briefing {
 
     {lines}
 
-    Reply with: council post --as {name} '...'  (only posted messages are seen; at most one message; post nothing if you have nothing to add).{wrap}
+    Reply by posting, with the heredoc so an apostrophe cannot break the command:
+        council post --as {name} - <<'COUNCIL'
+        your message, however it is punctuated
+        COUNCIL
+    Only posted messages are seen; at most one message; post nothing if you have nothing to add.{wrap}
     """
 
     /// R11a: the one nudge each member gets after everyone has answered the user. It is app-only — the CLI has
@@ -50,7 +54,12 @@ public enum Briefing {
 
     {lines}
 
-    Reply only if you have something to add: a disagreement, a correction, or a point nobody made. Post with: council post --as {name} '...'  (post nothing if you agree or would only be repeating yourself; at most one message).
+    Reply only if you have something to add: a disagreement, a correction, or a point nobody made. Post with the
+    heredoc so an apostrophe cannot break the command:
+        council post --as {name} - <<'COUNCIL'
+        your message, however it is punctuated
+        COUNCIL
+    Post nothing if you agree or would only be repeating yourself; at most one message.
     """
 
     public static let wrapNote = "\n\nThe user is wrapping up: post one final message with your conclusion, and do not @mention anyone."
@@ -62,8 +71,8 @@ public enum Briefing {
 
     /// chat.py `Deliverer.RETRY_PROMPT`: what a member is told after its request died on an API error.
     public static let retryTemplate =
-        "Your previous request failed with an API error. Try again now, and post your reply " +
-        "with `council post --as {name} '...'` when done."
+        "Your previous request failed with an API error. Try again now, and post your reply with " +
+        "`council post --as {name} - <<'COUNCIL'`, ending with a COUNCIL line, when done."
 
     /// Extra bullet the app adds to the briefing: its members run with `COUNCIL_AS` pinned, so `council post`
     /// in this terminal can only speak as this member. The CLI has no equivalent line because it does not pin.

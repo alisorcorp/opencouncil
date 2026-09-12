@@ -195,7 +195,11 @@ New council chat messages (you are "{name}"):
 
 {lines}
 
-Reply with: council post --as {name} '...'  (only posted messages are seen; at most one message; post nothing if you have nothing to add).{wrap}"""
+Reply by posting, with the heredoc so an apostrophe cannot break the command:
+    council post --as {name} - <<'COUNCIL'
+    your message, however it is punctuated
+    COUNCIL
+Only posted messages are seen; at most one message; post nothing if you have nothing to add.{wrap}"""
 
 DELIVERY_PLAIN = """\
 {lines}{wrap}"""
@@ -510,8 +514,8 @@ class Router:
         if after == before:
             self.bus.post(SYSTEM, f"{name} had nothing to add", "note")
 
-    RETRY_PROMPT = ("Your previous request failed with an API error. Try again now, and post your reply "
-                    "with `council post --as {name} '...'` when done.")
+    RETRY_PROMPT = ("Your previous request failed with an API error. Try again now, and post your reply with "
+                    "`council post --as {name} - <<'COUNCIL'`, ending with a COUNCIL line, when done.")
 
     def wait_quiet(self, name: str, agent: str, before: int, still_for: float = 20.0, max_wait: float = 900.0,
                    retries: int = 2):
