@@ -74,25 +74,40 @@ def words(text: str) -> int:
 # ------------------------------------------------------------------ config ---
 DEFAULT_CONFIG = """\
 # council.toml — members of the council and their defaults.
-# backend: "claude" (Claude Code CLI), "codex" (Codex CLI), "openai" (OpenAI-compatible HTTP, e.g. LM Studio)
+# backend: "claude" (Claude Code CLI), "codex" (Codex CLI), "kimi" (Kimi Code CLI, macOS app only),
+#          "pi" (pi-mono agent, any provider it knows), "openai" (OpenAI-compatible HTTP, e.g. LM Studio)
 
 [defaults]
-members = ["claude", "codex", "deepseek"]
+members = ["claude", "codex"]
 moderator = "claude"
 rounds = 1
 anonymous = false
 length = "about 300-500 words"
 
 [chat]
-members = ["claude", "codex", "deepseek"]   # `council session NAME`: chat pane left, these stacked right
+members = ["claude", "codex"]             # `council session NAME`: chat pane left, these stacked right
 budget = 12                               # max member replies per message you send
 effort = "medium"                         # reasoning effort for claude and codex (low/medium/high/xhigh/default)
+
+# Members get file and shell tools in the chat's working folder. The shipped posture is "ask before anything
+# risky": file edits go ahead, commands and anything reaching outside the folder are put to you in that
+# member's own terminal, and the app marks the member as needing attention while it waits. To let a member
+# run unattended instead, give it its CLI's own flag — claude `--dangerously-skip-permissions`, codex
+# `--yolo`, kimi `--auto` — which is what shipped before 2026-09-12.
+#
+# pi is the exception, and it is why no pi member is in the rosters above. pi has no permission system to
+# start in: its own README says so and points at a container instead, and council's pi extension only
+# reports what pi already did. A pi member cannot be made to ask and cannot be shown as waiting, so it
+# edits files and runs commands as you, silently. Adding one is a decision, which is why it is yours to
+# make. `council ask` from the terminal is the exception to the exception: it runs pi with `--no-tools`.
 
 [members.claude]
 backend = "claude"
 label = "Claude Fable 5.1"
 model = ""                # "", "opus", "sonnet", or a full model id
-chat_args = ["--dangerously-skip-permissions"]   # interactive session flags for `council chat`
+# `acceptEdits` takes the edits and asks about the rest; the second flag does not turn bypass on, it only
+# makes it available from inside the session if you decide you want it.
+chat_args = ["--permission-mode", "acceptEdits", "--allow-dangerously-skip-permissions"]
 
 [members.claude-opus]
 backend = "claude"
@@ -103,8 +118,19 @@ model = "opus"
 backend = "codex"
 label = "Codex GPT-6 Astra"
 model = ""
+# Writes stay inside the working folder; `on-request` is Codex's own "the model decides when to ask".
+chat_args = ["--sandbox", "workspace-write", "-a", "on-request"]
+
+[members.kimi]                               # app only: `council chat` starts members as herdr agents and
+backend = "kimi"                             # herdr has no kimi kind. The app hosts its own terminals.
+label = "Kimi K3"
+model = "kimi-code/k3"                       # a model id from ~/.kimi-code/config.toml
+# kimi names these the other way round to everyone else: `--yolo` is its *asking* mode ("routine edits and
+# commands run automatically; risky actions, questions, and plans still ask"), `--auto` is Never Ask.
 chat_args = ["--yolo"]
 
+# Defined but deliberately not in the rosters: pi has no permission system, so read the note above before
+# adding one of these to `[chat] members`.
 [members.deepseek]
 backend = "pi"                               # pi (pi-mono) agent: file/bash tools, OpenRouter via pi's own config
 label = "DeepSeek V4.1 Flash"
@@ -112,7 +138,7 @@ provider = "openrouter"
 model = "deepseek/deepseek-v4.1-flash"       # registered in ~/.pi/agent/models.json under openrouter
 chat_args = []                               # extra interactive pi flags for `council session`
 
-[members.gemini]                             # optional: council ask -m claude,codex,gemini
+[members.gemini]                             # optional, and a pi member too: council ask -m claude,codex,gemini
 backend = "pi"
 label = "Gemini 3.8 Flash"
 provider = "openrouter"

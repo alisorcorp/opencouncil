@@ -97,7 +97,7 @@ created with defaults on first run.
 |---|---|---|
 | `claude` | `claude -p`, tools off, claude.ai login | interactive Claude Code in a herdr pane |
 | `codex` | `codex exec`, read-only sandbox | interactive Codex in a herdr pane |
-| `pi` | `pi -p`, tools off, any provider pi knows | interactive pi in a herdr pane, with tools |
+| `pi` | `pi -p`, tools off, any provider pi knows | interactive pi in a herdr pane, with tools and nothing gating them |
 | `kimi` | not supported | app only |
 | `openai` | any OpenAI-compatible chat endpoint | a small streaming client, no tools |
 
@@ -106,8 +106,9 @@ members the key comes from `api_key`, `$api_key_env`, or a dotted path into a JS
 `api_key_json`).
 
 Interactive members start in their CLI's asking mode, the same as in the app, so a member may stop and wait for
-you to approve something in its own pane. See the README's permissions section for what each one is started with
-and how to change it.
+you to approve something in its own pane. pi is the exception. It has no permission system at all, which is why
+the shipped roster doesn't name a pi member and why `council ask` runs pi with `--no-tools`. See the README's
+permissions section for what each one is started with and how to change it.
 
 ## Notes
 

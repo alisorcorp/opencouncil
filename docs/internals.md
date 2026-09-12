@@ -52,6 +52,12 @@ Codex). Without that, a member that isn't running unattended would have to ask p
 reply, because answering means running `council post`, which writes to the chat directory and not to the folder
 the member works in.
 
+A pi member has nothing to ask with. pi ships no permission system, and `pi-council-events.ts` subscribes to
+events that report what pi did rather than events that could gate it, so there is no `PermissionRequest` to
+normalize and no state a `needs attention` card could describe. That is a property of pi, not a gap in the
+extension, and it is why the shipped roster has no pi member and why `ChatArgsParityTests` classifies each
+backend as either asking, ungated or tool-free instead of scanning everything for dangerous-looking flags.
+
 ## Routing
 
 Typing in the composer posts to `chat.jsonl` as `user` and starts the members if they aren't running. Who gets

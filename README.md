@@ -28,7 +28,7 @@ tested against:
 | Claude Code | `claude` | 2.1.269 | |
 | Codex | `codex` | codex-cli 0.154.0 | |
 | Kimi Code | `kimi` | 0.42.0 | App only. The terminal version can't host it |
-| pi | `pi` | 0.85.1 | Runs an OpenRouter model with the same file and shell tools. This one does need an API key, kept in pi's own config |
+| pi | `pi` | 0.85.1 | Runs an OpenRouter model with the same file and shell tools. Needs an API key, kept in pi's own config, and isn't in the shipped roster (see [permissions](#what-members-are-allowed-to-do)) |
 
 Newer versions will usually be fine. When one isn't, it tends to show up as a member that starts and then sits
 there, because these CLIs are driven through their hooks and their terminal output.
@@ -102,6 +102,15 @@ If you'd rather a member never stopped, give it its CLI's own flag in `council.t
 for Claude Code, `--yolo` for Codex, `--auto` for Kimi. That's how Open Council shipped until September 2026,
 and it's a reasonable thing to want in a scratch directory. It's a bad default for a stranger's first
 conversation, which is why it isn't one any more.
+
+**pi is the exception, and it's why no pi member is in the shipped roster.** pi has no permission system at
+all. Its own [README](https://github.com/earendil-works/pi#permissions--containerization) says so and points
+you at a container instead, and Council's pi extension only reports what pi already did, so there's no flag
+that would make a pi member ask and no way for the app to show one waiting. The `deepseek` member is still
+defined in `council.toml` and still listed in the new-chat sheet, just unticked. Tick it and it edits files
+and runs commands as you, without a prompt. That's fine in a scratch directory and a bad surprise anywhere
+else, so run pi in a container if you want a boundary. The one place this doesn't apply is `council ask` from
+the terminal, which runs pi with `--no-tools`.
 
 ## Known limitations
 
