@@ -74,6 +74,14 @@ public enum Briefing {
         "Your previous request failed with an API error. Try again now, and post your reply with " +
         "`council post --as {name} - <<'COUNCIL'`, ending with a COUNCIL line, when done."
 
+    /// App only, and verdict-only in practice: the CLI's verdict path calls the backend directly and gets the
+    /// answer back, so it has no post step for a member to forget. The app drives real terminals, where
+    /// forgetting is one dropped tool call — a member wrote a complete answer, ended its turn, and nothing
+    /// else ever saw it. "Do not write it again" because it still has the answer in its context.
+    public static let postNudgeTemplate =
+        "You ended your turn without posting. Post the answer you just wrote with " +
+        "`council post --as {name} - <<'COUNCIL'`, ending with a COUNCIL line. Do not write it again."
+
     /// Extra bullet the app adds to the briefing: its members run with `COUNCIL_AS` pinned, so `council post`
     /// in this terminal can only speak as this member. The CLI has no equivalent line because it does not pin.
     public static let pinnedIdentityNote =
@@ -116,6 +124,7 @@ public enum Briefing {
     /// `format_lines` in chat.py: `[sender → @mentions] text`, notes skipped, the member's own name shown as "you".
     /// The nudge after an API error, worded exactly as the CLI words it.
     public static func retryPrompt(name: String) -> String { fill(retryTemplate, ["name": name]) }
+    public static func postNudge(name: String) -> String { fill(postNudgeTemplate, ["name": name]) }
 
     public static func formatLines(_ messages: [Message], me: String) -> String {
         messages.filter { !$0.isNote }.map { m in

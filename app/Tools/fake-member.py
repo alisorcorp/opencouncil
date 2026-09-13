@@ -9,6 +9,8 @@ Environment knobs (all optional):
   FAKE_SLOW_START=<s>   sleep before announcing SessionStart
   FAKE_DELAY=<s>        thinking time before the reply (default 0.5)
   FAKE_NO_POST=1        finish the turn without posting ("nothing to add")
+  FAKE_NO_POST_TURNS=<n> forget to post for the first n turns, then post normally (a model that wrote its
+                        answer and never ran the tool; the app nudges it and this is what answering looks like)
   FAKE_BLOCK=1          raise a permission prompt and wait for the user to press y
   FAKE_CRASH=1          exit(1) right after accepting the first prompt
   FAKE_MENTION=<name>   include @<name> in the reply (exercises routing)
@@ -57,6 +59,7 @@ RESUMED = "--resume" in sys.argv or ("resume" in sys.argv[1:2])
 # marker outlives the process, so Retry — which replaces the terminal — gets a member that answers again, and
 # both the recovery and the re-asking of whatever it dropped are observable.
 DEAF_TURN = int(os.environ.get("FAKE_DEAF_TURN", "0"))
+NO_POST_TURNS = int(os.environ.get("FAKE_NO_POST_TURNS", "0"))
 DEAF_MARKER = os.path.join(CHAT, f".fake-deaf-{NAME}") if CHAT else ""
 # Anything sent to the trust dialog is written here. Its existence is the scenario's evidence that something
 # answered a security prompt, which is precisely what the app must never do.
@@ -274,7 +277,7 @@ def main() -> int:
             event("PreToolUse", tool_name="Read", tool_input={"file_path": os.path.join(os.getcwd(), "chat.py")})
             think(float(os.environ.get("FAKE_DELAY", "0.5")))
             event("PostToolUse", tool_name="Read", tool_input={"file_path": os.path.join(os.getcwd(), "chat.py")})
-            if os.environ.get("FAKE_NO_POST"):
+            if os.environ.get("FAKE_NO_POST") or turn <= NO_POST_TURNS:
                 out("[fake] nothing to add\n")
                 event("Stop", last_assistant_message="(nothing to add)", stop_reason="end_turn")
             else:

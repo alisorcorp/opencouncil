@@ -74,7 +74,11 @@ final class VerdictRuntime {
             sessionConfig.members[name].flatMap { MemberLaunchSpec(name: name, member: $0) } != nil
         }
         self.orchestrator = VerdictOrchestrator(run: run)
-        self.supervisor = MemberSupervisor(members: participants)
+        // A verdict round asks every member the same direct question, so a turn that ends with nothing
+        // posted is a dropped `council post`, not a member choosing to stay quiet the way a chat allows.
+        var timings = MemberSupervisor.Timings()
+        timings.nudgesForMissingAnswer = 1
+        self.supervisor = MemberSupervisor(members: participants, timings: timings)
         for name in participants { statuses[name] = .notRunning }
     }
 

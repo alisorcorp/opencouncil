@@ -25,6 +25,28 @@ final class MemberSupervisorTests: XCTestCase {
         effects.compactMap { if case .close(_, let o, _) = $0 { return o } else { return nil } }
     }
 
+    private func pasted(_ effects: [MemberSupervisor.Effect]) -> [String] {
+        effects.compactMap { if case .paste(_, let text) = $0 { return text } else { return nil } }
+    }
+
+    /// A verdict run's supervisor: every member was asked the same direct question, so one silent turn earns
+    /// a nudge rather than being taken as an answer.
+    private func askingSupervisor(_ members: [String] = ["kimi"]) -> MemberSupervisor {
+        var timings = MemberSupervisor.Timings()
+        timings.nudgesForMissingAnswer = 1
+        var s = MemberSupervisor(members: members, timings: timings)
+        for m in members { s.launched(m, now: t0) }
+        return s
+    }
+
+    /// Drives one member to the end of a silent turn and returns what that produced.
+    private func silentTurn(_ s: inout MemberSupervisor, from: TimeInterval = 1) -> [MemberSupervisor.Effect] {
+        _ = s.apply(.started(sessionId: nil, reason: nil), to: "kimi", now: at(from))
+        _ = s.send("answer this", to: "kimi", upTo: 7, now: at(from + 1))
+        _ = s.apply(.turnStarted, to: "kimi", now: at(from + 2))
+        return s.apply(.turnEnded(lastMessage: nil), to: "kimi", now: at(from + 4))
+    }
+
     // MARK: starting
 
     func testLaunchStartsAMemberAndTheSessionEventMakesItReady() {
@@ -122,6 +144,61 @@ final class MemberSupervisorTests: XCTestCase {
         let end = s.apply(.turnEnded(lastMessage: nil), to: "claude", now: at(5))
         XCTAssertEqual(notes(end), ["claude had nothing to add"])
         XCTAssertEqual(outcomes(end), [.nothingToAdd])
+    }
+
+    // MARK: a turn that ended without the answer it was asked for
+
+    /// kimi wrote a complete answer to a verdict round, ended its turn without running `council post`, and
+    /// the round was recorded as unanswered — which dropped it from every later round. The answer existed
+    /// the whole time; only the tool call was missing.
+    func testAnAnsweringTurnThatPostsNothingIsNudgedRatherThanClosed() {
+        var s = askingSupervisor()
+        let end = silentTurn(&s)
+        XCTAssertTrue(outcomes(end).isEmpty, "the delivery stays open: the member still has the answer")
+        XCTAssertEqual(notes(end), ["kimi ended its turn without posting; asking it to post"])
+        XCTAssertEqual(pasted(end), [Briefing.postNudge(name: "kimi")])
+        XCTAssertTrue(s.hasDeliveryInFlight(for: "kimi"))
+        XCTAssertEqual(s.state(of: "kimi"), .prompted(attempts: 1),
+                       "the nudge is a paste like any other, so the acknowledgement timeouts cover it")
+    }
+
+    func testTheNudgedMemberThatPostsClosesAsPosted() {
+        var s = askingSupervisor()
+        _ = silentTurn(&s)
+        _ = s.apply(.turnStarted, to: "kimi", now: at(7))
+        s.posted(member: "kimi", messageId: 9, now: at(8))
+        let end = s.apply(.turnEnded(lastMessage: nil), to: "kimi", now: at(9))
+        XCTAssertEqual(outcomes(end), [.posted])
+        XCTAssertTrue(notes(end).isEmpty)
+    }
+
+    func testASecondSilentTurnEndsTheDeliveryAsBefore() {
+        var s = askingSupervisor()
+        _ = silentTurn(&s)
+        _ = s.apply(.turnStarted, to: "kimi", now: at(7))
+        let end = s.apply(.turnEnded(lastMessage: nil), to: "kimi", now: at(9))
+        XCTAssertEqual(outcomes(end), [.nothingToAdd], "one nudge, not a loop")
+        XCTAssertEqual(notes(end), ["kimi had nothing to add"])
+        XCTAssertTrue(end.contains(.finished(member: "kimi")))
+    }
+
+    func testANudgeNobodyTakesFailsLikeAPromptNobodyTook() {
+        var s = askingSupervisor()
+        _ = silentTurn(&s)                                   // nudged at t+5, never acknowledged
+        XCTAssertEqual(pastes(s.tick(now: at(21))), ["kimi"])
+        XCTAssertEqual(pastes(s.tick(now: at(37))), ["kimi"])
+        let gaveUp = s.tick(now: at(53))
+        XCTAssertEqual(outcomes(gaveUp), [.failed])
+        XCTAssertEqual(s.state(of: "kimi"), .error(reason: MemberSupervisor.didNotAcceptPrompt))
+    }
+
+    /// The safety property for chats, where a member that decides not to reply has said something by saying
+    /// nothing and a nudge would talk it out of that.
+    func testAChatNeverNudges() {
+        XCTAssertEqual(MemberSupervisor.Timings().nudgesForMissingAnswer, 0)
+        var s = MemberSupervisor(members: ["kimi"])
+        s.launched("kimi", now: t0)
+        XCTAssertEqual(outcomes(silentTurn(&s)), [.nothingToAdd])
     }
 
     func testAPostFromAnEarlierTurnDoesNotSatisfyThisDelivery() {

@@ -18,6 +18,10 @@ public struct MemberSupervisor: Sendable {
         public var pasteAttempts = 3
         /// Retries after an API error appears on screen, as in chat.py's `wait_quiet`.
         public var apiErrorRetries = 2
+        /// Nudges after a turn ends with nothing posted. A chat leaves this at 0: a member that decides not
+        /// to reply has said something by saying nothing, and nudging would talk it out of that. A verdict
+        /// round asks a direct question, so a silent turn there is a dropped tool call, not an answer.
+        public var nudgesForMissingAnswer = 0
 
         public init() {}
     }
@@ -59,6 +63,7 @@ public struct MemberSupervisor: Sendable {
         var sentAt: Date
         var acknowledged = false
         var apiErrorRetries = 0
+        var answerNudges = 0
         var postId: Int64?
     }
 
@@ -132,6 +137,7 @@ public struct MemberSupervisor: Sendable {
             return []
 
         case .turnEnded:
+            if let nudge = nudgeForMissingAnswer(member, now: now) { return nudge }
             var effects: [Effect] = []
             effects += closePending(member, at: now)
             set(member, .ready, now: now)
@@ -191,6 +197,23 @@ public struct MemberSupervisor: Sendable {
         pending[member] = p
         return [.note("\(member) hit an API error (\(line.prefix(80))); retrying"),
                 .paste(member: member, text: Briefing.retryPrompt(name: member))]
+    }
+
+    /// A turn that ended without a post, where the delivery was a question that has to be answered. The
+    /// member is asked once to post what it already wrote, and the delivery stays open: a second silent turn
+    /// closes it as before. Re-entering `.prompted` puts the nudge itself under the paste-acknowledgement
+    /// timeouts, so a member that ignores it fails as one that never took the prompt rather than hanging.
+    private mutating func nudgeForMissingAnswer(_ member: String, now: Date) -> [Effect]? {
+        guard var p = pending[member], p.postId == nil,
+              p.answerNudges < timings.nudgesForMissingAnswer else { return nil }
+        p.answerNudges += 1
+        p.acknowledged = false
+        p.sentAt = now
+        p.text = Briefing.postNudge(name: member)
+        pending[member] = p
+        set(member, .prompted(attempts: 1), now: now)
+        return [.note("\(member) ended its turn without posting; asking it to post"),
+                .paste(member: member, text: p.text)]
     }
 
     /// The timeouts: a member that never spoke, and a prompt that was never acknowledged.

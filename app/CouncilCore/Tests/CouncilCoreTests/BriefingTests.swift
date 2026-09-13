@@ -28,6 +28,7 @@ final class BriefingTests: XCTestCase {
             ("delivery", Briefing.deliveryTemplate),
             ("reaction", Briefing.reactionTemplate),
             ("retry", Briefing.retryTemplate),
+            ("post nudge", Briefing.postNudgeTemplate),
             ("interrupted", Briefing.interruptedNote),
             ("pinned identity", Briefing.pinnedIdentityNote),
             ("wrap note", Briefing.wrapNote),

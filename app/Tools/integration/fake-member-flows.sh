@@ -344,7 +344,7 @@ ask() {
   COUNCIL_FAKE_MEMBERS=1 "$@" "$APP" --ask "$run" --timeout "$timeout" ${ASK_EXTRA:-} >"$run/ask.log" 2>&1 || true
 }
 
-# checkrun <run> <python expression over `dones`, `verdict`, `transcript`, `log`> <description>
+# checkrun <run> <python expression over `dones`, `verdict`, `transcript`, `log`, `notes`> <description>
 checkrun() {
   run="$1"; expr="$2"; what="$3"
   if python3 - "$run" "$expr" <<'CHECKRUN'
@@ -365,6 +365,16 @@ def read(name):
     return open(path).read() if os.path.exists(path) else None
 verdict, transcript, log = read("verdict.md"), read("transcript.md"), read("ask.log") or ""
 statuses = [d["status"] for d in dones.values()]
+notes = []
+for line in (read(".app/chat.jsonl") or "").splitlines():
+    if not line.strip():
+        continue
+    try:
+        m = json.loads(line)
+    except ValueError:
+        continue
+    if m.get("kind") == "note":
+        notes.append(m.get("text") or "")
 sys.exit(0 if eval(expr) else 1)
 CHECKRUN
   then
@@ -405,6 +415,18 @@ run_verdictsilent() {
   checkrun "$run" "len([s for s in statuses if s == 'ok']) == 2" "the other two answered"
   checkrun "$run" "verdict is not None" "two answers are enough to synthesize"
   checkrun "$run" "transcript and 'FAILED' in transcript" "the transcript says who did not answer"
+}
+
+run_verdictnudged() {
+  echo "verdict: a member that ends its turn without posting is asked to post, and does"
+  run=$(new_run verdictnudged)
+  # The failure this is built from: a member wrote a complete answer, ended its turn without running
+  # `council post`, and the round was recorded as unanswered — which dropped it from every later round.
+  ask "$run" 120 env FAKE_NO_POST_TURNS=1 FAKE_ONLY=claude
+  checkrun "$run" "dones.get((1,'claude'), {}).get('status') == 'ok'" "the answer it posted when asked is the round's answer"
+  checkrun "$run" "len(dones) == 3 and set(statuses) == {'ok'}" "nobody is dropped"
+  checkrun "$run" "any('ended its turn without posting' in n for n in notes)" "the bus says it had to be asked"
+  checkrun "$run" "verdict is not None" "the run produced a verdict"
 }
 
 run_verdictunreadable() {
@@ -522,7 +544,7 @@ run_retryfailed() {
   check "$chat" "any(m['from'] == 'codex' for m in bus if m.get('kind') != 'note')" "codex was unaffected throughout"
 }
 for scenario in ${*:-happy nopost unreadable reopened deaf crash slowstart nostart interrupted resumefails blocked permission trust \
-                     slots retryfailed verdict verdictrounds verdictsilent verdictunreadable verdictmoderatorunreadable verdictanon verdictresume \
+                     slots retryfailed verdict verdictrounds verdictsilent verdictnudged verdictunreadable verdictmoderatorunreadable verdictanon verdictresume \
                      verdictmoderatorretry}; do
   "run_$scenario"
 done
