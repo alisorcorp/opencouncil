@@ -35,6 +35,22 @@ final class EventNormalizerTests: XCTestCase {
         XCTAssertEqual(all[5], [.turnEnded(lastMessage: nil)], "an interrupt ends the turn")
     }
 
+    /// Captured from the round that failed on 2026-09-12: kimi answered round 1, then its provider rejected
+    /// the round-2 request outright. Kimi Code follows the Claude Code hook contract except on this one hook,
+    /// where the reason lives under `error_message` — and a reason the app cannot read is a reason the
+    /// maintainer only finds by opening events.jsonl.
+    func testKimiHooks() throws {
+        let all = try events("kimi-events.jsonl").map(\.1)
+        XCTAssertEqual(all[0], [.started(sessionId: "session_3179d2e5-0000-4000-8000-000000000001", reason: "startup")])
+        XCTAssertEqual(all[1], [.turnStarted])
+        XCTAssertEqual(all[2], [.toolStarted(tool: "Bash", activity: "ran council post --as kimi - <<\'COUNCIL\' **…")])
+        XCTAssertEqual(all[3], [.toolEnded(tool: "Bash", failed: false)])
+        XCTAssertEqual(all[4], [.turnEnded(lastMessage: nil)], "kimi's Stop carries no last_assistant_message")
+        XCTAssertEqual(all[5], [.turnStarted])
+        XCTAssertEqual(all[6], [.failed(message: "400 The request was rejected because it was considered high risk")],
+                       "the provider's own words, not \"turn failed\"")
+    }
+
     func testPiExtensionEvents() throws {
         let all = try events("pi-events.jsonl").map(\.1)
         XCTAssertEqual(all[0], [.started(sessionId: "a1b2c3d4-0000-4000-8000-000000000000", reason: "startup")])

@@ -8,9 +8,10 @@ public enum EventNormalizer {
         case "claude": return claude(raw)
         case "codex": return codex(raw)
         case "pi": return pi(raw)
-        // Kimi Code emits the Claude Code hook contract unchanged — `hook_event_name`, `session_id`, `cwd`,
-        // `source` on SessionStart, `stop_hook_active` on Stop — so it is read the same way. Its Stop carries
-        // no `last_assistant_message`, which the Claude reading already treats as absent.
+        // Kimi Code emits the Claude Code hook contract almost unchanged — `hook_event_name`, `session_id`,
+        // `cwd`, `source` on SessionStart, `stop_hook_active` on Stop — so it is read the same way. Its Stop
+        // carries no `last_assistant_message`, which the Claude reading already treats as absent, and its
+        // StopFailure names the reason `error_message` rather than `error`, which the Claude reading takes.
         case "kimi": return claude(raw)
         default: return []
         }
@@ -49,7 +50,12 @@ public enum EventNormalizer {
         case "Stop":
             return [.turnEnded(lastMessage: p["last_assistant_message"]?.stringValue)]
         case "StopFailure":
-            return [.failed(message: p["error"]?.stringValue ?? p["message"]?.stringValue ?? "turn failed")]
+            // Claude Code names the reason `error`; Kimi Code sends `error_message` with an `error_type`
+            // beside it. Reading only the first two turned the one sentence that says what went wrong into
+            // "turn failed" and left it in events.jsonl — a provider rejecting a request looked like a crash.
+            let reason = p["error"]?.stringValue ?? p["message"]?.stringValue
+                ?? p["error_message"]?.stringValue ?? p["error_type"]?.stringValue
+            return [.failed(message: reason ?? "turn failed")]
         case "SessionEnd":
             return [.ended(reason: p["reason"]?.stringValue)]
         default:
