@@ -10,8 +10,9 @@
 #   ./build.sh drive <chat-dir> "<message>" [--timeout s] [--to a,b] [--resume]
 #                         # start the chat's members in hidden terminals, paste the message, report hooks/posts
 #                         # COUNCIL_FAKE_MEMBERS=1 runs app/Tools/fake-member.py instead of the real CLIs
-#   ./build.sh render-replay <chat-dir> <output-dir> [--stress]
-#                         # Release UI replay on a private copy; no member processes or model calls
+#   ./build.sh render-replay <chat-dir> <output-dir> [--stress] [--live]
+#                         # Release UI replay on a private copy. --live adds the scripted stand-ins,
+#                         # so terminals and the ticker are present. No model calls either way.
 #   ./build.sh install [dir]
 #                         # build Release and put Council.app in /Applications (or `dir`)
 #   ./build.sh ask <run-dir> [--timeout s] [--retry-moderator]

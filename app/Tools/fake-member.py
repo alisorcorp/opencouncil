@@ -27,6 +27,13 @@ Environment knobs (all optional):
   FAKE_UNREADABLE=1     answer by writing a record straight into the log that no strict decoder will take:
                         complete, attributed, and unreadable — what an older `council post` left behind when
                         the shell had eaten half a character
+  FAKE_CHURN=<hz>       while thinking, repaint the screen this many times a second the way a real TUI does
+                        (Codex redraws its whole frame the entire time it works). Costs the app terminal
+                        parsing and view invalidation for the length of FAKE_DELAY, which a stand-in that
+                        sits silently never does
+  FAKE_REPLIES=<path>   a JSON object of {member: [text, ...]}; this member posts them in order instead of
+                        the synthetic one-liner, so a replay can carry the payloads a real conversation had
+                        (long markdown, mentions) and the app does the rendering and routing it really does
   FAKE_ONLY=<name>      apply every knob above to that member only; the others behave normally
 Ignores unknown arguments (the app passes the real CLI's flags).
 """
@@ -72,6 +79,34 @@ def event(hook: str, **payload) -> None:
                        text=True, capture_output=True, timeout=10)
     except Exception as e:  # noqa: BLE001
         out(f"[fake] event failed: {e}\n")
+
+SCRIPTED: list = []
+if os.environ.get("FAKE_REPLIES"):
+    try:
+        with open(os.environ["FAKE_REPLIES"], encoding="utf-8") as f:
+            SCRIPTED = list(json.load(f).get(NAME, []))
+    except Exception:
+        SCRIPTED = []
+
+
+def next_scripted_reply():
+    """The next payload this member had in the conversation being replayed, or None once they run out."""
+    return SCRIPTED.pop(0) if SCRIPTED else None
+
+
+def think(seconds: float) -> None:
+    """Wait the way a working CLI waits. Silently by default; with FAKE_CHURN, redrawing a frame the whole
+    time, which is what the app's terminals actually have to keep up with while three members think."""
+    hz = float(os.environ.get("FAKE_CHURN", "0") or 0)
+    if hz <= 0:
+        time.sleep(seconds)
+        return
+    frames, spin = int(seconds * hz), "|/-\\"
+    for i in range(max(frames, 1)):
+        rows = "\n".join(f"  {spin[i % 4]} working  line {r:2d} " + "\u2500" * 40 for r in range(20))
+        out("\x1b[H\x1b[2J" + rows + "\n")
+        time.sleep(1.0 / hz)
+
 
 def post(text: str) -> None:
     r = subprocess.run([COUNCIL, "post", "--as", NAME, text], text=True, capture_output=True, timeout=20)
@@ -237,17 +272,18 @@ def main() -> int:
                         return 130
                 event("Notification", notification_type="auth_success", message="allowed")
             event("PreToolUse", tool_name="Read", tool_input={"file_path": os.path.join(os.getcwd(), "chat.py")})
-            time.sleep(float(os.environ.get("FAKE_DELAY", "0.5")))
+            think(float(os.environ.get("FAKE_DELAY", "0.5")))
             event("PostToolUse", tool_name="Read", tool_input={"file_path": os.path.join(os.getcwd(), "chat.py")})
             if os.environ.get("FAKE_NO_POST"):
                 out("[fake] nothing to add\n")
                 event("Stop", last_assistant_message="(nothing to add)", stop_reason="end_turn")
             else:
                 first = lines[0].strip()
+                scripted = next_scripted_reply()
                 # A member's prompt (DELIVERY) starts with a header line; quote the first chat line instead.
                 quoted = next((l for l in lines if l.startswith("[")), first)
                 mention = f" @{os.environ['FAKE_MENTION']}" if os.environ.get("FAKE_MENTION") else ""
-                reply = f"{NAME} #{turn}: got {len(lines)} line(s), first: {quoted[:80]}{mention}"
+                reply = scripted or f"{NAME} #{turn}: got {len(lines)} line(s), first: {quoted[:80]}{mention}"
                 if "Produce the verdict now." in text:
                     # The moderator's prompt: answer in the shape council.py's parse_score expects.
                     score = "" if os.environ.get("FAKE_NO_SCORE") else "\n\n## Consensus\nScore: 73/100 broadly agreed."
