@@ -106,6 +106,13 @@ struct NewChatSheet: View {
             effort = cfg.chat.effort
             budget = cfg.chat.budget
             selected = Set(cfg.chat.members.filter { cfg.members[$0]?.isAvailable ?? false })
+            // council.toml is the answer until this person has made one of their own.
+            if let last = SheetMemory.load(SheetMemory.Chat.self, key: SheetMemory.chatKey) {
+                let offered = SheetMemory.stillOffered(last.members, in: cfg)
+                if !offered.isEmpty { selected = Set(offered) }
+                if Self.efforts.contains(last.effort) { effort = last.effort }
+                if last.budget > 0 { budget = last.budget }
+            }
         } catch {
             self.error = error.localizedDescription
         }
@@ -128,6 +135,8 @@ struct NewChatSheet: View {
             let order = config.memberOrder.filter { selected.contains($0) }
             let dir = try factory.create(title: title.trimmingCharacters(in: .whitespaces), members: order,
                                          cwd: folder, budget: budget, effort: effort)
+            SheetMemory.save(SheetMemory.Chat(members: order, effort: effort, budget: budget),
+                             key: SheetMemory.chatKey)
             onCreate(dir)
             dismiss()
         } catch {

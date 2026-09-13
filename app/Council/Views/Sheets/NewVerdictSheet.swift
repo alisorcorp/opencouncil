@@ -140,6 +140,15 @@ struct NewVerdictSheet: View {
             selected = Set(defaults.filter { cfg.members[$0]?.isAvailable ?? false })
             let preferred = cfg.defaults.moderator.flatMap { cfg.members[$0]?.isAvailable == true ? $0 : nil }
             moderator = preferred ?? cfg.memberOrder.first { cfg.members[$0]?.isAvailable ?? false } ?? ""
+            // As in the chat sheet: the config decides until this person has chosen for themselves. A run
+            // needs two members, so a remembered pair that has shrunk below that keeps the config's answer.
+            if let last = SheetMemory.load(SheetMemory.Verdict.self, key: SheetMemory.verdictKey) {
+                let offered = SheetMemory.stillOffered(last.members, in: cfg)
+                if offered.count >= 2 { selected = Set(offered) }
+                if cfg.members[last.moderator]?.isAvailable == true { moderator = last.moderator }
+                if (1...4).contains(last.rounds) { rounds = last.rounds }
+                anonymous = last.anonymous
+            }
         } catch {
             self.error = error.localizedDescription
         }
@@ -173,6 +182,8 @@ struct NewVerdictSheet: View {
             let order = config.memberOrder.filter { selected.contains($0) }
             let dir = try factory.create(question: question, members: order, moderator: moderator,
                                          rounds: rounds, anonymous: anonymous, attachments: attachments)
+            SheetMemory.save(SheetMemory.Verdict(members: order, moderator: moderator, rounds: rounds,
+                                                 anonymous: anonymous), key: SheetMemory.verdictKey)
             // Where the members work is app-owned state, so it goes in app.json next to the CLI's config.json
             // and survives a resume.
             try SessionAppState.update(in: dir) { $0.cwdOverride = folder.path }
