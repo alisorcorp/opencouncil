@@ -5,13 +5,15 @@ import AppKit
 /// hidden except the selected one, so all grids stay the same size and hidden terminals keep rendering the
 /// output they receive.
 struct TerminalContainerView: NSViewRepresentable {
-    let runtime: SessionRuntime
+    /// The hosts themselves rather than the runtime holding them: a chat and a verdict run both host real
+    /// terminals, and this view has never needed to know which.
+    let hosts: [TerminalHost]
     let selected: String
 
     func makeNSView(context: Context) -> TerminalStackView { TerminalStackView() }
 
     func updateNSView(_ view: TerminalStackView, context: Context) {
-        view.show(hosts: runtime.orderedHosts, selected: selected)
+        view.show(hosts: hosts, selected: selected)
     }
 }
 

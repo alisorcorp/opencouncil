@@ -12,11 +12,11 @@ struct TerminalPane: View {
     var body: some View {
         VStack(spacing: 0) {
             SessionHeader(vm: vm, subtitle: subtitle)
-            if let rt = vm.runtime, rt.host(for: member) != nil {
-                TerminalContainerView(runtime: rt, selected: member)
+            if vm.terminalHost(for: member) != nil {
+                TerminalContainerView(hosts: vm.terminalHosts, selected: member)
                     .background(Color(nsColor: .textBackgroundColor))
                     .overlay(alignment: .bottom) {
-                        if rt.lockedMembers.contains(member) { DeliveryLockBadge() }
+                        if vm.lockedMembers.contains(member) { DeliveryLockBadge() }
                     }
             } else {
                 notRunning
@@ -27,20 +27,18 @@ struct TerminalPane: View {
     private var subtitle: String {
         var s = "\(label) · terminal"
         if let status = agent?.status, status != .notRunning { s += " · \(status.label)" }
-        if let hint = vm.runtime?.blockedHints[member] { s += " · \(hint)" }
+        if let hint = vm.hint(for: member) { s += " · \(hint)" }
         return s
     }
 
-    private var problem: String? {
-        vm.runtime?.problems.first { $0.member == member || $0.member == "*" }?.message
-    }
+    private var problem: String? { vm.problem(for: member) }
 
     private var notRunning: some View {
         VStack(spacing: 10) {
             IconView(.terminal, size: 56).foregroundStyle(.tertiary)
             Text("\(label) is not running").font(Typography.title3)
             Text(detail).foregroundStyle(.secondary).multilineTextAlignment(.center).frame(maxWidth: 380)
-            if vm.summary.kind == .chat, vm.runtime == nil {
+            if vm.summary.kind == .chat, !vm.isLive {
                 Button("Start members") { vm.startMembers() }
                     .buttonStyle(.borderedProminent)
                     .padding(.top, 6)
@@ -54,9 +52,9 @@ struct TerminalPane: View {
 
     private var detail: String {
         if let problem { return problem }
-        if vm.runtime != nil { return "This member cannot run in the app." }
+        if vm.isLive { return "This member cannot run in the app." }
         if vm.summary.kind == .chat { return "Start the members to open a terminal for each of them here." }
-        return "Verdict members run in hidden sessions once verdicts move into the app."
+        return "A verdict run's members have terminals while the question is being asked. This one has finished."
     }
 }
 

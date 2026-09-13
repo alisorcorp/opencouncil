@@ -206,6 +206,26 @@ final class SessionViewModel {
     func hasDeliveryInFlight(for member: String) -> Bool { runtime?.hasDeliveryInFlight(for: member) ?? false }
     func hint(for member: String) -> String? { runtime?.blockedHints[member] ?? verdictRuntime?.blockedHints[member] }
 
+    // MARK: terminals
+    //
+    // A verdict's members are real interactive terminals in the app, exactly like a chat's — only the thing
+    // driving them differs. The terminal pane used to read `runtime` alone, so a verdict member asking for
+    // permission showed "is not running" on the one screen that could have answered it.
+
+    var terminalHosts: [TerminalHost] { runtime?.orderedHosts ?? verdictRuntime?.orderedHosts ?? [] }
+    func terminalHost(for member: String) -> TerminalHost? {
+        runtime?.host(for: member) ?? verdictRuntime?.host(for: member)
+    }
+    var lockedMembers: Set<String> { runtime?.lockedMembers ?? verdictRuntime?.lockedMembers ?? [] }
+    /// The two runtimes each declare their own `Problem`, so this reads them one at a time rather than
+    /// coalescing the arrays.
+    func problem(for member: String) -> String? {
+        func mine(_ name: String) -> Bool { name == member || name == "*" }
+        if let p = runtime?.problems.first(where: { mine($0.member) }) { return p.message }
+        if let p = verdictRuntime?.problems.first(where: { mine($0.member) }) { return p.message }
+        return nil
+    }
+
     /// Retry on a card: relaunch that member alone.
     func restart(_ member: String) {
         if let rt = verdictRuntime { rt.restart(member); return }
