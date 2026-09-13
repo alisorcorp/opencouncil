@@ -29,6 +29,24 @@ public struct ToolLocations: Sendable, Equatable {
         }
     }
 
+    /// Point every backend the app can host as a terminal at one executable, for the scripted stand-in that
+    /// runs in place of the real CLIs.
+    ///
+    /// The loop-and-switch is the point: a case added to `Backend` fails to compile here instead of quietly
+    /// keeping its real CLI. That is how kimi came to be left out, so `COUNCIL_FAKE_MEMBERS=1` launched the
+    /// real `kimi` and spent the user's subscription during runs whose whole purpose was to spend nothing.
+    public mutating func redirectTerminalBackends(to executable: URL) {
+        for backend in CouncilConfig.Backend.allCases {
+            switch backend {
+            case .claude: claude = executable
+            case .codex: codex = executable
+            case .pi: pi = executable
+            case .kimi: kimi = executable
+            case .openai: break          // a direct HTTP client; there is no terminal to redirect
+            }
+        }
+    }
+
     /// Path used in hook commands. Falls back to the bare name so a developer PATH still works.
     public var councilCommand: String { council?.path ?? "council" }
 }

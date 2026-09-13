@@ -19,10 +19,7 @@ struct MemberLaunchEnvironment: Sendable {
         var tools = ToolLocations(shell: shell)
         let fake = processEnvironment[fakeFlag] == "1"
         if fake {
-            let script = paths.root.appendingPathComponent("app/Tools/fake-member.py")
-            tools.claude = script
-            tools.codex = script
-            tools.pi = script
+            tools.redirectTerminalBackends(to: paths.root.appendingPathComponent("app/Tools/fake-member.py"))
         }
         return MemberLaunchEnvironment(tools: tools,
                                        baseEnvironment: shell.memberBaseEnvironment(from: processEnvironment),
