@@ -10,6 +10,8 @@
 #   ./build.sh drive <chat-dir> "<message>" [--timeout s] [--to a,b] [--resume]
 #                         # start the chat's members in hidden terminals, paste the message, report hooks/posts
 #                         # COUNCIL_FAKE_MEMBERS=1 runs app/Tools/fake-member.py instead of the real CLIs
+#   ./build.sh render-replay <chat-dir> <output-dir> [--stress]
+#                         # Release UI replay on a private copy; no member processes or model calls
 #   ./build.sh install [dir]
 #                         # build Release and put Council.app in /Applications (or `dir`)
 #   ./build.sh ask <run-dir> [--timeout s] [--retry-moderator]
@@ -92,9 +94,13 @@ case "${1:-build}" in
     xcodebuild -project Council.xcodeproj -scheme Council -configuration Debug -derivedDataPath "$DERIVED" -skipPackagePluginValidation build -quiet
     shift
     "$DERIVED/Build/Products/Debug/Council.app/Contents/MacOS/Council" --drive "$@" ;;
+  render-replay)
+    xcodebuild -project Council.xcodeproj -scheme Council -configuration Release -derivedDataPath "$DERIVED" -skipPackagePluginValidation build -quiet
+    shift
+    "$DERIVED/Build/Products/Release/Council.app/Contents/MacOS/Council" --render-replay "$@" ;;
   ask)
     xcodebuild -project Council.xcodeproj -scheme Council -configuration Debug -derivedDataPath "$DERIVED" -skipPackagePluginValidation build -quiet
     shift
     "$DERIVED/Build/Products/Debug/Council.app/Contents/MacOS/Council" --ask "$@" ;;
-  *) echo "usage: $0 [build|test|run|install|snapshot|drive|ask]"; exit 2 ;;
+  *) echo "usage: $0 [build|test|run|install|snapshot|drive|render-replay|ask]"; exit 2 ;;
 esac

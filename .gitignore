@@ -20,6 +20,7 @@ app/signing.local
 
 # working notes and design sources: kept on disk, not part of the published project
 /ASTRA-AUDIT.md
+/ASTRA-HANDOFF.md
 /HANDOFF.md
 /HANDOFF.receipt.json
 /docs/*.psd
