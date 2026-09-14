@@ -117,7 +117,8 @@ public struct ChatSessionFactory: Sendable {
     /// visible: a member waiting on an answer reports `PermissionRequest`, which reaches the user as a
     /// `needs attention` card rather than a chat that has quietly stopped.
     static let defaultChatArgs: [CouncilConfig.Backend: [String]] = [
-        .claude: ["--permission-mode", "acceptEdits", "--allow-dangerously-skip-permissions"],
+        .claude: ["--permission-mode", "acceptEdits", "--allow-dangerously-skip-permissions",
+                  "--allowedTools", "WebSearch", "WebFetch"],
         .codex: ["--sandbox", "workspace-write", "-a", "on-request"],
         .kimi: ["--yolo"],
         .pi: ["--no-session", "--offline"],

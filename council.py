@@ -106,8 +106,11 @@ backend = "claude"
 label = "Claude Fable 5.1"
 model = ""                # "", "opus", "sonnet", or a full model id
 # `acceptEdits` takes the edits and asks about the rest; the second flag does not turn bypass on, it only
-# makes it available from inside the session if you decide you want it.
-chat_args = ["--permission-mode", "acceptEdits", "--allow-dangerously-skip-permissions"]
+# makes it available from inside the session if you decide you want it. The web tools are allowed outright:
+# reading a page edits nothing and runs nothing, and codex can already search without being asked, so without
+# this a question with a fact in it stops Claude on a prompt while codex goes and checks.
+chat_args = ["--permission-mode", "acceptEdits", "--allow-dangerously-skip-permissions",
+             "--allowedTools", "WebSearch", "WebFetch"]
 
 [members.claude-opus]
 backend = "claude"

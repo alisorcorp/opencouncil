@@ -92,7 +92,7 @@ final class ChatSessionFactoryTests: XCTestCase {
         let config = try ChatConfig.load(from: try create(try factory()))
         XCTAssertEqual(config.members["claude"]?.chatArgs,
                        ["--permission-mode", "acceptEdits", "--allow-dangerously-skip-permissions",
-                        "--effort", "medium"])
+                        "--allowedTools", "WebSearch", "WebFetch", "--effort", "medium"])
         XCTAssertEqual(config.members["codex"]?.chatArgs,
                        ["--sandbox", "workspace-write", "-a", "on-request", "-c", "model_reasoning_effort=\"medium\""])
         XCTAssertEqual(config.members["deepseek"]?.chatArgs,
@@ -110,7 +110,8 @@ final class ChatSessionFactoryTests: XCTestCase {
         let config = try ChatConfig.load(from: try create(try factory(effort: "default")))
         XCTAssertEqual(config.members["claude"]?.label, "Claude Fable 5.1")
         XCTAssertEqual(config.members["claude"]?.chatArgs,
-                       ["--permission-mode", "acceptEdits", "--allow-dangerously-skip-permissions"])
+                       ["--permission-mode", "acceptEdits", "--allow-dangerously-skip-permissions",
+                        "--allowedTools", "WebSearch", "WebFetch"])
     }
 
     func testEveryMemberInTheNewChatCanActuallyBeLaunched() throws {

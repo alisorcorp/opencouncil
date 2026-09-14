@@ -88,12 +88,16 @@ per member in `council.toml`, and the shipped defaults ask before anything risky
 
 | Member | Starts with | Which means |
 |---|---|---|
-| Claude Code | `--permission-mode acceptEdits` | Takes its file edits, asks before running commands |
+| Claude Code | `--permission-mode acceptEdits --allowedTools WebSearch WebFetch` | Takes its file edits, looks things up, asks before running commands |
 | Codex | `--sandbox workspace-write -a on-request` | Writes stay inside your folder, asks when it wants more |
 | Kimi Code | `--yolo` | Kimi's asking mode. Routine edits run, risky things ask |
 
 Kimi names those backwards from everyone else, which is worth knowing before you edit anything: `--yolo` is the
 careful one and `--auto` is the mode that never asks.
+
+Claude Code and Codex can both look things up without asking. Codex always could and Claude Code couldn't, so
+any question with a fact in it would stop Claude mid-round for permission while Codex went off and checked.
+Reading a page doesn't touch your files or run anything, so it isn't what the asking is for.
 
 When a member does stop to ask, it shows as "needs attention" in the sidebar with a card naming what it wants,
 and it waits. Click through to its terminal and answer there. The app never answers these for you.

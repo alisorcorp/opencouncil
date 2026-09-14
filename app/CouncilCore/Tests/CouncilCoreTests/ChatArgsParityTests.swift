@@ -77,6 +77,22 @@ final class ChatArgsParityTests: XCTestCase {
         }
     }
 
+    /// Codex has been able to search the web without asking all along — `--sandbox workspace-write -a
+    /// on-request` covers its `webrun` — and Claude Code could not, so a verdict on anything factual stopped
+    /// Claude on a WebSearch prompt in the critique round while codex went and checked. That is the round
+    /// where a member goes back over the numbers it flagged as unverified, so it is the worst place to stall.
+    /// Reading a page edits nothing and runs nothing: it is not one of the gates the README promises, and
+    /// allowing it is not a hole in them.
+    func testClaudeCanReadTheWebWithoutAsking() {
+        let args = ChatSessionFactory.defaultChatArgs[.claude] ?? []
+        guard let allowed = args.firstIndex(of: "--allowedTools") else {
+            return XCTFail("claude starts with no --allowedTools, so WebSearch stops it mid-round to ask")
+        }
+        for tool in ["WebSearch", "WebFetch"] {
+            XCTAssertTrue(args[allowed...].contains(tool), "\(tool) is not allowed, so it asks")
+        }
+    }
+
     /// The README promises that the shipped defaults ask before anything risky. A member on a backend with
     /// no gate keeps that promise only by not being in the roster: it stays defined in `council.toml`, so
     /// the app still offers it in the new-chat sheet, and ticking it is the user's decision rather than

@@ -36,7 +36,8 @@ SYSTEM = "system"
 # What a member runs with when council.toml does not say. Members are asked to confirm anything risky; see
 # the note above [members.claude] in council.toml for how to let one run unattended instead. Mirrored in
 # ChatSessionFactory.defaultChatArgs, and a test holds the two together.
-DEFAULT_CHAT_ARGS = {"claude": ["--permission-mode", "acceptEdits", "--allow-dangerously-skip-permissions"],
+DEFAULT_CHAT_ARGS = {"claude": ["--permission-mode", "acceptEdits", "--allow-dangerously-skip-permissions",
+                                "--allowedTools", "WebSearch", "WebFetch"],
                      "codex": ["--sandbox", "workspace-write", "-a", "on-request"],
                      "kimi": ["--yolo"],
                      "pi": ["--no-session", "--offline"]}
