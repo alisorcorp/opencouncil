@@ -8,16 +8,28 @@ import CouncilCore
 /// than opening with nothing ticked and a disabled button.
 final class SheetMemoryTests: XCTestCase {
     private var store: UserDefaults!
-    private var suite: String!
+
+    /// One fixed name rather than a fresh UUID per run. `removePersistentDomain` empties a domain but leaves
+    /// its now-empty plist behind, so the per-run name quietly left ten files in ~/Library/Preferences before
+    /// anybody thought to look. tearDown deletes the file too, though cfprefsd usually writes the empty
+    /// domain back out after the test process has gone; the fixed name is what bounds the mess at one.
+    private static let suite = "council.sheetmemory.tests"
+
+    private static var plist: URL {
+        URL(fileURLWithPath: NSHomeDirectory())
+            .appendingPathComponent("Library/Preferences/\(suite).plist")
+    }
 
     override func setUp() {
         super.setUp()
-        suite = "council.sheetmemory.\(UUID().uuidString)"
-        store = UserDefaults(suiteName: suite)
+        store = UserDefaults(suiteName: Self.suite)
+        store.removePersistentDomain(forName: Self.suite)   // a previous run's leftovers are not this run's
     }
 
     override func tearDown() {
-        store.removePersistentDomain(forName: suite)
+        store.removePersistentDomain(forName: Self.suite)
+        store = nil
+        try? FileManager.default.removeItem(at: Self.plist)
         super.tearDown()
     }
 
