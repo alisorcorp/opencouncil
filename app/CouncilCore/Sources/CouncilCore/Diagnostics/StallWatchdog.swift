@@ -8,8 +8,9 @@ import Foundation
 /// records when one went out, and the clock decides when to sample, so the report is written during the
 /// beachball rather than after it.
 ///
-/// Off unless `COUNCIL_WATCHDOG` is set. It spawns `/usr/bin/sample` against a process that is already in
-/// trouble, which is the right trade while chasing a stall and the wrong one for everybody else.
+/// On unless `COUNCIL_WATCHDOG` turns it off. Running costs a ping every 250 ms; `/usr/bin/sample` is spawned
+/// only once a ping has gone unanswered, at a process that is by then already in trouble. It was opt-in until
+/// a beachball on 2026-09-17 went uncaptured, which is what a launch flag someone has to remember is worth.
 ///
 /// `Council --stall <seconds>` blocks the main thread on purpose and checks that a report lands before the
 /// block ends, which is the only way to tell this apart from a watchdog that merely reports late.
@@ -74,7 +75,7 @@ public final class StallWatchdog: @unchecked Sendable {
 
     public func stop() {
         lock.lock(); stopped = true; lock.unlock()
-        // Taken after the instance lock is released, never with it held: `startIfRequested` takes these two in
+        // Taken after the instance lock is released, never with it held: `startUnlessDisabled` takes these two in
         // the other order.
         Self.ownerLock.lock()
         if Self.owned === self { Self.owned = nil }
@@ -163,19 +164,21 @@ public final class StallWatchdog: @unchecked Sendable {
     private static let ownerLock = NSLock()
     nonisolated(unsafe) private static var owned: StallWatchdog?
 
-    /// The watchdog this process is running, if it was asked for one. Reaching it through here is also how a
-    /// caller that discarded the return value stops it again.
+    /// The watchdog this process is running, unless one was turned off. Reaching it through here is also how
+    /// a caller that discarded the return value stops it again.
     public static var running: StallWatchdog? {
         ownerLock.lock(); defer { ownerLock.unlock() }
         return owned
     }
 
-    /// `COUNCIL_WATCHDOG=1`. Anything falsey, and absence, leaves the app with no watchdog at all.
+    /// `COUNCIL_WATCHDOG=0` (or `false`, `no`, `off`) is the only thing that stops a watchdog starting.
+    /// Absence means on, and so does any other value: a spelling nobody anticipated should leave the stall
+    /// captured rather than silently unwatched.
     @discardableResult
-    public static func startIfRequested(environment: [String: String] = ProcessInfo.processInfo.environment,
-                                        reports: URL = StallWatchdog.defaultReports) -> StallWatchdog? {
-        let asked = environment["COUNCIL_WATCHDOG"] ?? ""
-        guard ["1", "true", "yes", "on"].contains(asked.lowercased()) else { return nil }
+    public static func startUnlessDisabled(environment: [String: String] = ProcessInfo.processInfo.environment,
+                                           reports: URL = StallWatchdog.defaultReports) -> StallWatchdog? {
+        let asked = (environment["COUNCIL_WATCHDOG"] ?? "").lowercased()
+        guard !["0", "false", "no", "off"].contains(asked) else { return nil }
         ownerLock.lock()
         if let existing = owned {
             ownerLock.unlock()

@@ -34,12 +34,15 @@ enum StallCommand {
         try? FileManager.default.createDirectory(at: reports, withIntermediateDirectories: true)
         let before = names(in: reports)
 
-        // Started the way the app starts it, return value dropped and all. A watchdog nobody owns deallocates
+        // Started the way the app starts it: no environment, return value dropped and all. A watchdog nobody owns deallocates
         // before its first tick, and this test used to keep one in a local of its own — so it passed while the
         // shipped app watched nothing. Going through the same entry point is what closes that gap: if the
         // ownership breaks again, no report is written and every check below fails.
-        _ = StallWatchdog.startIfRequested(environment: ["COUNCIL_WATCHDOG": "1"], reports: reports)
+        _ = StallWatchdog.startUnlessDisabled(environment: [:], reports: reports)
         expect(StallWatchdog.running != nil, "the watchdog survived the call that started it")
+        // Said out loud because the empty environment is easy to miss: setting COUNCIL_WATCHDOG=0 around this
+        // command changes nothing, and a run that still writes a report is not evidence the opt-out is broken.
+        log("started with no COUNCIL_WATCHDOG, which is the default every launch gets")
         log("reports: \(reports.path)")
         log("blocking for \(seconds)s, on the shipped settings: reported after 1.5s, sampled for 3s")
 

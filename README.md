@@ -124,13 +124,16 @@ answer in that member's terminal. Claude Code does the same in a folder it hasn'
 override that's supposed to pre-approve this, and it doesn't work: tested against codex-cli 0.154.0, the dialog
 appears anyway. Answering it once per folder is enough, since Codex remembers.
 
-**A freeze that looks fixed.** Until September the app could stop responding for five to twenty seconds,
-always at the same point in a conversation: where the transcript first grows taller than the window. Two of
-those were sampled, and the time went on SwiftUI resolving the text layout of every message at once. A fix for
-that shipped, and it hasn't happened since, across conversations that ran well past where it used to. That's a
-few hours of testing rather than proof. If it does happen to you the app comes back on its own and nothing is
-lost, and you can help: launch with `open --env COUNCIL_WATCHDOG=1 -a Council`, which samples the app while
-it's stuck and writes the stack to `~/Library/Logs/Council`.
+**It still freezes sometimes.** The app can stop responding for a few seconds while replies are arriving.
+Two of those were sampled and the time went on SwiftUI resolving the text layout of every message at once, so
+a fix for that shipped in September and it is rarer now. It is not gone: one turned up on 17 September five
+messages into a conversation, which also killed the theory that it fires at a predictable size. The app
+comes back on its own and nothing is lost.
+
+Every launch watches itself for this, so if it happens to you there is a stack waiting in
+`~/Library/Logs/Council` named for the minute it started. Sending me that file is the most useful thing anyone
+can do about this. The watchdog pings the main thread four times a second and does nothing else until one of
+those pings goes unanswered for a second and a half; set `COUNCIL_WATCHDOG=0` if you would rather it didn't.
 
 **No signed download.** Distributing a built app needs a Developer ID certificate and notarization, which this
 project doesn't have yet. Building from source is the only route.

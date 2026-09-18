@@ -135,10 +135,10 @@ final class StallWatchdogTests: XCTestCase {
         let reports = Self.scratch()
         weak var afterTheCallReturns: StallWatchdog?
         do {
-            let started = StallWatchdog.startIfRequested(environment: ["COUNCIL_WATCHDOG": "1"], reports: reports)
+            let started = StallWatchdog.startUnlessDisabled(reports: reports)
             XCTAssertNotNil(started)
             afterTheCallReturns = started
-        }                                          // exactly what `_ = StallWatchdog.startIfRequested()` does
+        }                                          // exactly what `_ = StallWatchdog.startUnlessDisabled()` does
         XCTAssertNotNil(afterTheCallReturns,
                         "nothing owns the watchdog, so the app starts one and it deallocates immediately")
         XCTAssertNotNil(StallWatchdog.running, "the process has no watchdog to reach")
@@ -149,8 +149,8 @@ final class StallWatchdogTests: XCTestCase {
     /// Two of them sampling the same process would each report the other.
     func testAskingTwiceGivesTheSameWatchdog() {
         let reports = Self.scratch()
-        let first = StallWatchdog.startIfRequested(environment: ["COUNCIL_WATCHDOG": "1"], reports: reports)
-        let second = StallWatchdog.startIfRequested(environment: ["COUNCIL_WATCHDOG": "1"], reports: reports)
+        let first = StallWatchdog.startUnlessDisabled(reports: reports)
+        let second = StallWatchdog.startUnlessDisabled(reports: reports)
         XCTAssertNotNil(first)
         XCTAssertTrue(first === second, "a second call started a second watchdog")
         first?.stop()
@@ -161,18 +161,25 @@ final class StallWatchdogTests: XCTestCase {
             .appendingPathComponent("council-watchdog-\(UUID().uuidString)")
     }
 
-    /// Spawning `sample` at a process in trouble is the right trade while chasing a stall and the wrong one
-    /// for everybody else, so absence and every falsey spelling have to mean off.
-    func testItOnlyRunsWhenAskedFor() throws {
+    /// A beachball on 2026-09-17 landed in the one chat that could have tested the leading theory and wrote no
+    /// stack, because the app had not been launched with the flag. So the default is on and only an explicit
+    /// refusal turns it off — including the spellings somebody would reach for without checking.
+    func testOnlyAnExplicitRefusalTurnsItOff() throws {
         let reports = Self.scratch()
-        for environment in [[:], ["COUNCIL_WATCHDOG": ""], ["COUNCIL_WATCHDOG": "0"],
-                            ["COUNCIL_WATCHDOG": "no"], ["SOMETHING_ELSE": "1"]] as [[String: String]] {
-            XCTAssertNil(StallWatchdog.startIfRequested(environment: environment, reports: reports),
-                         "started with \(environment)")
+        for environment in [["COUNCIL_WATCHDOG": "0"], ["COUNCIL_WATCHDOG": "false"],
+                            ["COUNCIL_WATCHDOG": "no"], ["COUNCIL_WATCHDOG": "off"],
+                            ["COUNCIL_WATCHDOG": "OFF"]] as [[String: String]] {
+            XCTAssertNil(StallWatchdog.startUnlessDisabled(environment: environment, reports: reports),
+                         "\(environment) did not turn it off")
         }
-        let watchdog = StallWatchdog.startIfRequested(environment: ["COUNCIL_WATCHDOG": "1"], reports: reports)
-        XCTAssertNotNil(watchdog)
-        watchdog?.stop()
+        // Absence is the case that matters: it is what everybody who never sets the variable gets. An
+        // unrecognised value joins it rather than the refusals, so a typo watches instead of going quiet.
+        for environment in [[:], ["SOMETHING_ELSE": "1"], ["COUNCIL_WATCHDOG": "1"],
+                            ["COUNCIL_WATCHDOG": "yes"], ["COUNCIL_WATCHDOG": "maybe"]] as [[String: String]] {
+            let watchdog = StallWatchdog.startUnlessDisabled(environment: environment, reports: reports)
+            XCTAssertNotNil(watchdog, "\(environment) left the app unwatched")
+            watchdog?.stop()
+        }
         XCTAssertFalse(FileManager.default.fileExists(atPath: reports.path),
                        "starting the watchdog wrote something before anything had stalled")
     }
