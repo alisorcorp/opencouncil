@@ -55,10 +55,38 @@ final class TerminalHost: LocalProcessTerminalView {
     func stop() {
         guard !hasExited else { return }
         let wasRunning = isRunning
+        let child = pid
         terminate()
         hasExited = true
         exitStatus = wasRunning ? 128 + SIGTERM : exitStatus
+        Self.reap(child)
         onExit?(self, exitStatus)
+    }
+
+    /// Waits for a stopped child so it does not sit in the process table as `<defunct>` for the rest of the
+    /// app's life. `terminate` signals the child and cancels the exit source in the same breath, so the one
+    /// `waitpid` SwiftTerm would have made never happens: every member the app stops leaks an entry, and they
+    /// accumulate across stop/start. Reaping is unconditional rather than gated on `isRunning`, because a pty
+    /// that has already reported EOF leaves the flag clear while the exit is still unclaimed.
+    ///
+    /// SIGKILL after `grace`: a member that ignores SIGTERM must not hold this thread, and `waitpid` only
+    /// reports 0 for a child that is still ours, so the escalation cannot reach a reused pid. Giving up at
+    /// `patience` leaves things exactly as they were before.
+    nonisolated static func reap(_ pid: pid_t, grace: TimeInterval = 5, patience: TimeInterval = 10) {
+        guard pid > 0 else { return }
+        DispatchQueue.global(qos: .utility).async {
+            let killAt = Date().addingTimeInterval(grace)
+            let giveUpAt = Date().addingTimeInterval(patience)
+            var killed = false
+            var status: Int32 = 0
+            while true {
+                if waitpid(pid, &status, WNOHANG) != 0 { return }   // reaped, or already gone
+                let now = Date()
+                if now >= giveUpAt { return }
+                if !killed, now >= killAt { kill(pid, SIGKILL); killed = true }
+                usleep(20_000)
+            }
+        }
     }
 
     /// Bytes from the app itself; never subject to the input lock.

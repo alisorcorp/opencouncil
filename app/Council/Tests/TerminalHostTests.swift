@@ -103,6 +103,25 @@ final class TerminalHostTests: XCTestCase {
         XCTAssertEqual(exitSeen, 128 + SIGTERM)
     }
 
+    /// A stopped member must leave no `<defunct>` behind. SwiftTerm's `terminate()` signals the child and
+    /// cancels the exit source in one breath, so nothing ever calls `waitpid` and the kernel keeps the entry
+    /// for as long as the app runs; the host has to reap it. A zombie still answers `kill(pid, 0)`, so ESRCH
+    /// is what proves the entry is gone rather than merely idle.
+    @MainActor
+    func testStoppingAMemberReapsItsChild() async throws {
+        let host = TerminalHost(member: "t")
+        host.launch(plan("/bin/cat", []))
+        let running = await waitUntil(3) { host.isRunning }
+        XCTAssertTrue(running)
+        let pid = host.pid
+        XCTAssertGreaterThan(pid, 0)
+
+        host.stop()
+
+        let reaped = await waitUntil(5) { kill(pid, 0) != 0 }
+        XCTAssertTrue(reaped, "stop() left pid \(pid) unreaped; it is a <defunct> child of the app")
+    }
+
     func testDecodeWaitStatus() {
         XCTAssertEqual(TerminalHost.decodeWaitStatus(0), 0)
         XCTAssertEqual(TerminalHost.decodeWaitStatus(1 << 8), 1)
