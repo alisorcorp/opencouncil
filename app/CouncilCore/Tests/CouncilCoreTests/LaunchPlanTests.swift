@@ -53,6 +53,21 @@ final class LaunchPlanTests: XCTestCase {
         XCTAssertTrue(plan.isResume)
     }
 
+    /// The launch line is the only place a claude member's model can go: the settings file is a copy of the
+    /// user's own, model included, so a `model` in council.toml that never reaches here changes the label and
+    /// nothing else. Every claude member in every chat ran the user's own default for exactly that reason.
+    func testClaudeRunsTheModelItIsGiven() throws {
+        var spec = try XCTUnwrap(specs()["claude"])
+        XCTAssertFalse(try LaunchPlanner.plan(member: spec, context: context()).arguments.contains("--model"),
+                       "no model named, so the user's own Claude Code default should stand")
+        spec.model = "claude-opus-5-5"
+        let args = try LaunchPlanner.plan(member: spec, context: context()).arguments
+        let at = try XCTUnwrap(args.firstIndex(of: "--model"), "a model named in council.toml never reached claude")
+        XCTAssertEqual(args[at + 1], "claude-opus-5-5")
+        let resumed = try LaunchPlanner.plan(member: spec, context: context(resume: "abc-123")).arguments
+        XCTAssertTrue(resumed.contains("claude-opus-5-5"), "a resumed member must keep the model it was given")
+    }
+
     func testCodexPlan() throws {
         let plan = try LaunchPlanner.plan(member: try XCTUnwrap(specs()["codex"]), context: context())
         XCTAssertEqual(plan.executable.path, "/opt/bin/codex")

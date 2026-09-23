@@ -56,8 +56,8 @@ public struct MemberLaunchSpec: Sendable, Equatable {
     public var name: String
     public var backend: CouncilConfig.Backend
     public var chatArgs: [String]
-    /// The model id from `council.toml`, for backends the app names it on the command line (kimi). Empty
-    /// means "whatever the CLI is configured to use".
+    /// The model id from `council.toml`, for backends the app names it on the command line (claude, kimi).
+    /// Empty means "whatever the CLI is configured to use".
     public var model: String
 
     public init(name: String, backend: CouncilConfig.Backend, chatArgs: [String], model: String = "") {
@@ -175,6 +175,9 @@ public enum LaunchPlanner {
         case .claude:
             env["CLAUDE_CODE_FORCE_SYNC_OUTPUT"] = "1"
             args = member.chatArgs
+            // Nothing else carries the model: the settings file is a copy of the user's own, `model` key and
+            // all, so without this a model named in council.toml changed the member's label and nothing else.
+            if !member.model.isEmpty { args += ["--model", member.model] }
             if let settings = context.claudeSettingsFile { args += ["--settings", settings.path] }
             // A member answers by running `council post`, and that writes into the chat directory — which is
             // not the folder it works in. Since members no longer start with their CLI's stop-asking flag,
