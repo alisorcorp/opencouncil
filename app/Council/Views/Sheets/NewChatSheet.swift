@@ -29,6 +29,11 @@ struct NewChatSheet: View {
 
     private var members: [CouncilConfig.Member] { config?.orderedMembers ?? [] }
     private var canCreate: Bool { !title.trimmingCharacters(in: .whitespaces).isEmpty && !selected.isEmpty }
+    /// The working folder holds the config and hook code — a caution, not a block: working on Council itself is
+    /// a real use, and it is what this project's own councils do.
+    private var folderExposesCouncil: Bool {
+        paths.exposesCouncilRoot(folder) || CouncilPaths.holdsConfig(folder)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -45,6 +50,12 @@ struct NewChatSheet: View {
                             Spacer()
                             Button("Choose…", action: pickFolder)
                         }
+                    }
+                    if folderExposesCouncil {
+                        Label("This is the Council app's own folder. Members will have file and shell tools over "
+                              + "council.toml and the hook scripts. Fine if you mean to work on Council itself; "
+                              + "otherwise choose your project's folder.", systemImage: "exclamationmark.triangle")
+                            .font(Typography.caption).foregroundStyle(Palette.vermilion)
                     }
                 } footer: {
                     Text("Members work in this folder — they read and edit files here on their own. "

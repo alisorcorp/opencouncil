@@ -33,6 +33,10 @@ struct NewVerdictSheet: View {
     private var canCreate: Bool {
         !question.trimmingCharacters(in: .whitespaces).isEmpty && selected.count >= 2 && !moderator.isEmpty
     }
+    /// The working folder holds the config and hook code — a caution, not a block (see NewChatSheet).
+    private var folderExposesCouncil: Bool {
+        paths.exposesCouncilRoot(folder) || CouncilPaths.holdsConfig(folder)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -53,6 +57,13 @@ struct NewVerdictSheet: View {
                             Spacer()
                             Button("Choose…", action: pickFolder)
                         }
+                    }
+                    if folderExposesCouncil {
+                        Label("This is the Council app's own folder. Members will have file and shell tools over "
+                              + "council.toml and the hook scripts. Fine if you mean to work on Council itself; "
+                              + "otherwise choose your project's folder.", systemImage: "exclamationmark.triangle")
+                            .font(Typography.caption).foregroundStyle(Palette.vermilion)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 } footer: {
                     // Claude Code asks whether you trust a folder the first time it runs in one, and answers

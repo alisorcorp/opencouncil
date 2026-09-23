@@ -90,4 +90,26 @@ final class ConfigTests: XCTestCase {
         XCTAssertEqual(CouncilPaths.rootFromWrapper(bare)?.path, "/opt/council")
         XCTAssertNil(CouncilPaths.rootFromWrapper("echo hi"))
     }
+
+    func testExposesCouncilRoot() {
+        let paths = CouncilPaths(root: URL(fileURLWithPath: "/Users/x/Documents/AI/council"))
+        // The root itself, and anything above it, put members' tools over council.toml and council.py.
+        XCTAssertTrue(paths.exposesCouncilRoot(URL(fileURLWithPath: "/Users/x/Documents/AI/council")))
+        XCTAssertTrue(paths.exposesCouncilRoot(URL(fileURLWithPath: "/Users/x/Documents/AI")))
+        XCTAssertTrue(paths.exposesCouncilRoot(URL(fileURLWithPath: "/Users/x")))
+        XCTAssertTrue(paths.exposesCouncilRoot(URL(fileURLWithPath: "/")))
+        XCTAssertTrue(paths.exposesCouncilRoot(URL(fileURLWithPath: "/Users/x/Documents/AI/council/../council")))
+        // A folder beside or below the root is fine: reaching up to the config is outside the working folder.
+        XCTAssertFalse(paths.exposesCouncilRoot(URL(fileURLWithPath: "/Users/x/Documents/AI/council/sub")))
+        XCTAssertFalse(paths.exposesCouncilRoot(URL(fileURLWithPath: "/Users/x/Documents/AI/council-notes")))
+        XCTAssertFalse(paths.exposesCouncilRoot(URL(fileURLWithPath: "/Users/x/Code/project")))
+    }
+
+    func testHoldsConfig() throws {
+        let dir = try Fixtures.tempDir("holds-config")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        XCTAssertFalse(CouncilPaths.holdsConfig(dir), "an ordinary folder is not a council checkout")
+        try Data().write(to: dir.appendingPathComponent("council.toml"))
+        XCTAssertTrue(CouncilPaths.holdsConfig(dir), "a folder with a council.toml is a second checkout")
+    }
 }

@@ -18,6 +18,27 @@ public struct CouncilPaths: Sendable, Equatable {
         return fm.fileExists(atPath: configFile.path) && fm.fileExists(atPath: councilScript.path)
     }
 
+    /// Whether a chat's working folder is the folder that holds `council.toml` and `council.py` — this
+    /// checkout's root, or any folder above it. That is where members get file and shell tools, so a working
+    /// folder here means those tools reach the config that sets a member's own permissions and the scripts its
+    /// hooks run. It is a real thing to want (working on Council itself), so the app warns rather than refuses;
+    /// this is the pure path test behind that warning. `standardizedFileURL` resolves `.`/`..` and symlinks in
+    /// the last component so `/x/../root` and `root` compare equal.
+    public func exposesCouncilRoot(_ workingFolder: URL) -> Bool {
+        let w = workingFolder.standardizedFileURL.path
+        let r = root.standardizedFileURL.path
+        if w == r { return true }
+        let prefix = w.hasSuffix("/") ? w : w + "/"   // "/" stays "/", so a working folder of "/" catches all
+        return r.hasPrefix(prefix)
+    }
+
+    /// True when `folder` is itself a council checkout (holds a `council.toml`). Catches a *second* clone
+    /// chosen as a working folder, which `exposesCouncilRoot` — comparing only against this checkout's root —
+    /// cannot see.
+    public static func holdsConfig(_ folder: URL, fileManager: FileManager = .default) -> Bool {
+        fileManager.fileExists(atPath: folder.appendingPathComponent("council.toml").path)
+    }
+
     /// Finds the council folder. Order: an explicit preference, the folder the installed `council`
     /// wrapper points at (install.sh writes `exec python3 <root>/council.py`), then the conventional location.
     public static func discoverRoot(preferred: URL? = nil,
