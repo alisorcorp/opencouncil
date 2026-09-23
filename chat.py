@@ -42,7 +42,11 @@ DEFAULT_CHAT_ARGS = {"claude": ["--permission-mode", "acceptEdits", "--allow-dan
                      "kimi": ["--yolo"],
                      "pi": ["--no-session", "--offline"]}
 WRAP_RE = re.compile(r"\bwrap(?:ping)?\s+(?:it|this|things)?\s*up\b|^/wrap\b", re.I)
-MENTION_RE = re.compile(r"@([a-z][a-z0-9_-]*)", re.I)
+# The `@` must open a word (start of string or after whitespace), so an address or handle that contains a
+# member name -- jane@claude.ai, github.com/@codex -- is not read as a mention. A mention narrows delivery to
+# the named members, so a false one silently drops everyone else; a missed one just broadcasts (the default),
+# so the boundary errs toward broadcasting. Kept identical to Mentions.swift.
+MENTION_RE = re.compile(r"(?<!\S)@([a-z][a-z0-9_-]*)", re.I)
 WHITE = "\033[97m"
 
 

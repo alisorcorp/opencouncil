@@ -26,6 +26,12 @@ final class BusTests: XCTestCase {
         XCTAssertEqual(Mentions.extract(from: "@user please decide", members: members), ["user"])
         XCTAssertEqual(Mentions.extract(from: "@nobody @123 email me@example.com", members: members), [])
         XCTAssertEqual(Mentions.extract(from: "no mentions here", members: members), [])
+        // An address or handle that happens to contain a member name is not a mention of that member: the `@`
+        // has to open a word, not sit inside one. Without the boundary, "email jane@codex.io" quietly routed
+        // the message to codex alone and spent its reply budget.
+        XCTAssertEqual(Mentions.extract(from: "reply to jane@codex.io about it", members: members), [])
+        XCTAssertEqual(Mentions.extract(from: "see github.com/@claude for the fork", members: members), [])
+        XCTAssertEqual(Mentions.extract(from: "ping @codex about jane@claude.ai", members: members), ["codex"])
     }
 
     func testAppendRoundTripsAndInterleavesWithPythonShape() throws {

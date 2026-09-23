@@ -1,9 +1,13 @@
 import Foundation
 
-/// `@name` extraction, identical to `Bus.mentions` in chat.py: `@([a-z][a-z0-9_-]*)`, case-insensitive,
+/// `@name` extraction, identical to `Bus.mentions` in chat.py: `(?<!\S)@([a-z][a-z0-9_-]*)`, case-insensitive,
 /// `@all` / `@everyone` expand to every member, `@user` is allowed, unknown names are ignored, order kept, no duplicates.
+/// The `@` must open a word — start of string or after whitespace — so an address or handle that contains a
+/// member name (`jane@claude.ai`, `github.com/@codex`) is not read as a mention. A mention narrows delivery to
+/// exactly the named members, so a false one silently drops everyone else; a missed one just broadcasts, which
+/// is the default anyway, so the boundary errs toward broadcasting.
 public enum Mentions {
-    nonisolated(unsafe) private static let regex = try! NSRegularExpression(pattern: "@([a-z][a-z0-9_-]*)", options: [.caseInsensitive])
+    nonisolated(unsafe) private static let regex = try! NSRegularExpression(pattern: "(?<!\\S)@([a-z][a-z0-9_-]*)", options: [.caseInsensitive])
 
     public static func extract(from text: String, members: [String]) -> [String] {
         var found: [String] = []
