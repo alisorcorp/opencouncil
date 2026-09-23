@@ -103,8 +103,8 @@ effort = "medium"                         # reasoning effort for claude and code
 
 [members.claude]
 backend = "claude"
-label = "Claude Fable 5.1"
-model = ""                # "", "opus", "sonnet", or a full model id
+label = "Claude Opus 5.5"
+model = "claude-opus-5-5" # "" for your own Claude Code default, "opus", "sonnet", or a full model id
 # `acceptEdits` takes the edits and asks about the rest; the second flag does not turn bypass on, it only
 # makes it available from inside the session if you decide you want it. The web tools are allowed outright:
 # reading a page edits nothing and runs nothing, and codex can already search without being asked, so without
