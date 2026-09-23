@@ -198,6 +198,10 @@ final class VerdictRuntime {
         blockedHints[member] = nil
         problems.removeAll { $0.member == member }
         launch(member, environment: environment)   // `launched` resets this member's state machine
+        // The relaunched process knows nothing of the question; the original ask went to the one just killed.
+        // `reask` re-arms it only while the round is still waiting on this member, so a Retry after the run has
+        // moved on relaunches the terminal without pretending it is back in a round it already left.
+        perform(orchestrator.reask(member, now: Date()))
     }
 
     /// Retry moderator on the verdict card: the answers are kept, only the synthesis runs again.

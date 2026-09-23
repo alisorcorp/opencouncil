@@ -417,4 +417,33 @@ final class VerdictOrchestratorTests: XCTestCase {
         XCTAssertFalse(o.isFinished)
         XCTAssertEqual(asked(o.begin(now: t0)), ["codex", "deepseek"], "claude is left alone")
     }
+
+    // MARK: re-asking a relaunched member (the verdict card's Retry)
+
+    /// Retry relaunches a wedged member's terminal; the fresh process was never asked, so the round has to ask
+    /// it again. While the round is still waiting on the member, `reask` produces exactly that one ask.
+    func testReaskGivesTheMemberItsQuestionAgain() {
+        var o = make()
+        _ = o.begin(now: t0)
+        XCTAssertTrue(o.isWaiting(on: "codex"))
+        XCTAssertEqual(asked(o.reask("codex", now: t0.addingTimeInterval(30))), ["codex"])
+    }
+
+    /// A member that already answered has left `outstanding`; re-asking it would record a second answer or hang
+    /// the round. Retry on such a card relaunches the terminal but asks nothing.
+    func testReaskDoesNothingOnceTheMemberHasAnswered() {
+        var o = make()
+        _ = o.begin(now: t0)
+        _ = o.answered("codex", text: "an answer", now: t0.addingTimeInterval(5))
+        XCTAssertFalse(o.isWaiting(on: "codex"))
+        XCTAssertEqual(o.reask("codex", now: t0.addingTimeInterval(30)), [])
+    }
+
+    /// Once the run has left the asking phase, there is no round to re-enter.
+    func testReaskDoesNothingAfterTheRunMovesOn() {
+        var o = make(rounds: 1)
+        _ = o.begin(now: t0)
+        for m in ["claude", "codex", "deepseek"] { _ = o.answered(m, text: "a", now: t0.addingTimeInterval(1)) }
+        XCTAssertEqual(o.reask("claude", now: t0.addingTimeInterval(2)), [], "the run is moderating, not asking")
+    }
 }

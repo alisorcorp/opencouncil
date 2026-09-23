@@ -194,6 +194,17 @@ public struct VerdictOrchestrator: Sendable {
         return effects
     }
 
+    /// Re-ask a member the current round's question. The verdict card's Retry relaunches a wedged member's
+    /// terminal, and the fresh process has to be told the question again — the original ask went to the
+    /// process that was just killed. Only while the round is still waiting on this member: one that has
+    /// answered or been recorded as failed has left `outstanding`, and its round may be closed, so there is
+    /// nothing to re-ask. `askedAt` is re-armed so the answer timeout counts from the new ask, not the old.
+    public mutating func reask(_ member: String, now: Date) -> [Effect] {
+        guard case .asking(let round) = phase, outstanding.contains(member) else { return [] }
+        askedAt[member] = now
+        return [.ask(member: member, round: round, text: prompt(for: member, round: round))]
+    }
+
     /// The moderator posted the verdict.
     public mutating func moderated(_ text: String, now: Date) -> [Effect] {
         guard case .moderating = phase else { return [] }
