@@ -90,6 +90,17 @@ final class VerdictRuntime {
     func state(of member: String) -> MemberState { supervisor.state(of: member) }
     func isWaiting(on member: String) -> Bool { orchestrator.isWaiting(on: member) }
 
+    /// The reason a now-unavailable member should be recorded as failing this round, or nil to keep waiting.
+    /// Only a dialog the user can still clear waits: `.blocked` / `.blockedBeforeStart` resume on `.unblocked`.
+    /// A clean exit lands in `.notRunning` with no reason of its own, which is the case the round used to sit
+    /// through until the answer timeout; every other unavailable state already carries one.
+    nonisolated static func failureReason(forUnavailable state: MemberState) -> String? {
+        switch state {
+        case .blocked, .blockedBeforeStart: return nil
+        default: return state.reason ?? "stopped without answering"
+        }
+    }
+
     /// What the user has to act on, in launch order.
     var attention: [(member: String, state: MemberState)] {
         participants.compactMap { m in
@@ -436,9 +447,13 @@ final class VerdictRuntime {
             case .finished:
                 break
             case .unavailable(let member):
-                // Blocked is not failure: a dialog is something the user can clear, and the run waits. Only a
-                // member that has given up or gone away is recorded as having produced nothing.
-                if case .error(let reason) = supervisor.state(of: member) {
+                // A dialog the user can still clear is not failure: the run waits and `.unblocked` resumes it.
+                // Every other way a member goes unavailable means no answer is coming, so the round stops
+                // waiting on it. A clean exit was the gap — it lands in `.notRunning`, not `.error`, so the old
+                // `.error`-only test left the round waiting the full answer timeout for a member the user had
+                // already quit. `orchestrator.failed` is a no-op once a member has answered (it is no longer
+                // outstanding), so a member that exits after posting is left with its answer intact.
+                if let reason = Self.failureReason(forUnavailable: supervisor.state(of: member)) {
                     perform(orchestrator.failed(member, reason: reason, now: Date()))
                 }
             }
