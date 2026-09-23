@@ -48,7 +48,7 @@ final class ChatArgsParityTests: XCTestCase {
     static let permissions: [CouncilConfig.Backend: PermissionModel] = [
         .claude: .asksUnless(["--dangerously-skip-permissions", "bypassPermissions"]),
         .codex: .asksUnless(["--yolo", "--full-auto", "--dangerously-bypass-approvals-and-sandbox",
-                             "danger-full-access"]),
+                             "danger-full-access", "--approve-for-me"]),
         .kimi: .asksUnless(["--auto"]),
         .pi: .noGate,
         .openai: .noTools,
@@ -75,6 +75,49 @@ final class ChatArgsParityTests: XCTestCase {
                                + "without asking anyone")
             }
         }
+    }
+
+    /// The guard above checks `defaultChatArgs` — the fallback for a member that names no `chat_args`. Every
+    /// member in the shipped roster names its own, and `chat_args` wins, so that test guards nothing a fresh
+    /// clone actually runs. A clone runs the committed `council.toml`, so this reads that.
+    ///
+    /// It reads `HEAD`, not the working tree, on purpose: a maintainer's local override exists precisely to run
+    /// unattended on their own machine, and failing their suite for it would be wrong. Only a *commit* that
+    /// ships an unattended member should fail here. With no git or no committed file (a source tarball) there is
+    /// no shipped posture to check, so the test skips rather than inventing one.
+    func testTheCommittedConfigStartsNoMemberUnattended() throws {
+        guard let toml = Self.gitShow("HEAD:council.toml", at: repoRoot) else {
+            throw XCTSkip("council.toml is not committed here (no git, or a tarball); nothing to check")
+        }
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("council-head-\(UUID()).toml")
+        try toml.write(to: tmp, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: tmp) }
+        let config = try CouncilConfig.load(from: tmp)
+        for (name, member) in config.members {
+            guard let backend = member.backend, let args = member.chatArgs,
+                  case .asksUnless(let flags) = Self.permissions[backend] else { continue }
+            let line = args.joined(separator: " ")
+            for flag in flags {
+                XCTAssertFalse(line.contains(flag),
+                               "committed council.toml starts \(name) with \(flag), so a fresh clone runs it "
+                               + "changing files and running commands without asking anyone")
+            }
+        }
+    }
+
+    /// `git show <ref>` at a repo root, or nil when git is missing or the object is not there.
+    private static func gitShow(_ ref: String, at root: URL) -> String? {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+        p.arguments = ["-C", root.path, "show", ref]
+        let out = Pipe()
+        p.standardOutput = out
+        p.standardError = FileHandle.nullDevice
+        do { try p.run() } catch { return nil }
+        let data = out.fileHandleForReading.readDataToEndOfFile()
+        p.waitUntilExit()
+        guard p.terminationStatus == 0 else { return nil }
+        return String(data: data, encoding: .utf8)
     }
 
     /// Codex has been able to search the web without asking all along — `--sandbox workspace-write -a
