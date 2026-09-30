@@ -101,6 +101,9 @@ final class SessionViewModel {
 
     var title: String { summary.displayTitle }
     var cwd: String? { appState.cwdOverride ?? summary.cwd }
+    /// What a relative path in this session's messages is relative to: the folder its members work in, which
+    /// for a run with no override is the run's own directory (see `runCwd`).
+    var linkFolder: URL { cwd.map { URL(fileURLWithPath: $0) } ?? summary.directory }
 
     /// The runtime hosting this session's members, while they run in the app.
     var runtime: SessionRuntime? { live?.runtime(for: summary.id) }

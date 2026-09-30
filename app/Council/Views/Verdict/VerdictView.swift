@@ -33,6 +33,7 @@ struct VerdictView: View {
             }
         }
         .background(Palette.canvas)
+        .councilLinks(folder: vm.linkFolder)
         .sheet(isPresented: Binding(get: { vm.capReached }, set: { vm.capReached = $0 })) {
             LiveCapSheet(title: vm.title, sessions: vm.runningSessions,
                          onTake: { vm.takeSlot(from: $0) }) { vm.capReached = false }

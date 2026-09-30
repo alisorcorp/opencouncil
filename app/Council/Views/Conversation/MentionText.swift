@@ -8,6 +8,9 @@ struct MessageMarkdown: View {
     let text: String
     let members: [String]
     var onMention: ((String) -> Void)?
+    /// Installed by `councilLinks(folder:)` on the screen; absent (a snapshot, a test), links still open but
+    /// relative paths have no folder to resolve against.
+    @Environment(\.councilOpenLink) private var openLink
 
     var body: some View {
         StructuredText(markdown: MentionMarkup.apply(to: text, members: members))
@@ -23,7 +26,8 @@ struct MessageMarkdown: View {
                     if let name = url.host() ?? url.pathComponents.dropFirst().first { onMention?(name) }
                     return .handled
                 }
-                return .systemAction
+                // Not `.systemAction` directly: a path link has no scheme, and the system answers that with -50.
+                return openLink?(url) ?? LinkOpener.open(url, relativeTo: nil) { _ in NSSound.beep() }
             })
     }
 }
