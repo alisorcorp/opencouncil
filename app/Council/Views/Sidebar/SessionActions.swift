@@ -34,6 +34,7 @@ struct SessionActions: View {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(session.directory.path, forType: .string)
             }
+            Button("Export as HTML…") { SessionExport.export(session) }
             Divider()
             if session.kind == .chat {
                 Button("Rename…") { rename() }

@@ -29,16 +29,22 @@ enum Palette {
     // MARK: members
     // Eight slots so a large roster still reads; the palette first, then tints of it. Index = position in the
     // session's member order, as the CLI does it.
-    static let members: [Color] = [
-        periwinkle,
-        orange,
-        Color(hex: 0x4FC3C7),        // teal, a cool counterweight to the warm half
-        amber,
-        Color(hex: 0xB07BE8),        // violet, between the indigo and the warm end
-        vermilion,
-        Color(hex: 0x9BA2F5),        // pale periwinkle
-        Color(hex: 0x5B54A6),        // deep indigo, lifted enough to read on the canvas
+    static let memberHex: [UInt32] = [
+        0x7678ED,                    // periwinkle
+        0xF18701,                    // orange
+        0x4FC3C7,                    // teal, a cool counterweight to the warm half
+        0xF7B801,                    // amber
+        0xB07BE8,                    // violet, between the indigo and the warm end
+        0xF35B04,                    // vermilion
+        0x9BA2F5,                    // pale periwinkle
+        0x5B54A6,                    // deep indigo, lifted enough to read on the canvas
     ]
+    /// Defined from `memberHex` so an exported page colours each member exactly as the app does.
+    static let members: [Color] = memberHex.map { Color(hex: $0) }
+    /// The accent colour asset's two appearances, for places that cannot read the asset (an exported page).
+    static let accentHex = (light: UInt32(0x6062D8), dark: UInt32(0x7678ED))
+
+    static func css(_ hex: UInt32) -> String { String(format: "#%06X", hex) }
 
     static func member(_ index: Int) -> Color { members[max(index, 0) % members.count] }
 

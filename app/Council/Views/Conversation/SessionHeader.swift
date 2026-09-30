@@ -26,6 +26,11 @@ struct SessionHeader: View {
                         .help("\(a.label) · \(a.status.label)")
                 }
             }
+            Button { SessionExport.export(vm.summary) } label: {
+                Image(systemName: "square.and.arrow.up")
+            }
+            .buttonStyle(.bordered)
+            .help("Export the whole session as an HTML page")
             if vm.isLive {
                 Button("Stop members") { vm.stopMembers() }
                     .buttonStyle(.bordered)
