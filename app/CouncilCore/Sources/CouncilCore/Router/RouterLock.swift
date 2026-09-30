@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 
 /// `router.lock` in a chat directory: whoever holds it is the one delivering messages to that chat's members.
 /// Two routers on one chat would paste into the same terminals and double every reply, so the app takes the
@@ -60,6 +61,8 @@ public struct RouterLock: Sendable {
     /// `force` takes over a live lock, which the user has to ask for explicitly.
     @discardableResult
     public func acquire(force: Bool = false, now: Date = Date()) throws -> Holder {
+        let guardFD = try openGuard()
+        defer { flock(guardFD, LOCK_UN); close(guardFD) }
         if let current = holder(), current.isAlive, !force,
            !(current.pid == ProcessInfo.processInfo.processIdentifier && current.host == Self.hostName) {
             throw LockError.held(current)
@@ -74,8 +77,26 @@ public struct RouterLock: Sendable {
 
     /// Releases the lock, but only if this process still holds it (never removes someone else's).
     public func release() {
+        guard let guardFD = try? openGuard() else { return }
+        defer { flock(guardFD, LOCK_UN); close(guardFD) }
         guard let current = holder() else { return }
         guard current.pid == ProcessInfo.processInfo.processIdentifier, current.host == Self.hostName else { return }
         try? FileManager.default.removeItem(at: url)
+    }
+
+    /// One critical section around the read/check/write, shared with chat.py's `router_guard` and anything else
+    /// that routes a chat: without it, two routers starting together could both read "no lock" and both write
+    /// themselves in. The guard is a separate file because `router.lock` is replaced atomically on every write,
+    /// so a lock taken on it would be on an inode the next writer has already swapped out.
+    private func openGuard() throws -> Int32 {
+        let path = url.deletingLastPathComponent().appendingPathComponent("router.guard").path
+        let fd = Darwin.open(path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)
+        guard fd >= 0 else { throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno)) }
+        guard flock(fd, LOCK_EX) == 0 else {
+            let code = errno
+            close(fd)
+            throw NSError(domain: NSPOSIXErrorDomain, code: Int(code))
+        }
+        return fd
     }
 }

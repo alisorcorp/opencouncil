@@ -74,6 +74,27 @@ final class RouterLockTests: XCTestCase {
         XCTAssertEqual(holder?.pid, 1)
     }
 
+    /// `acquire` is one critical section with every other router through `router.guard`. A second open of that
+    /// file, flocked, is what another process looks like to it; `acquire` has to wait at the door rather than
+    /// read "no lock" and write itself in alongside the one already inside.
+    func testAcquireWaitsForTheGuard() throws {
+        let fd = open(dir.appendingPathComponent("router.guard").path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)
+        XCTAssertGreaterThanOrEqual(fd, 0)
+        XCTAssertEqual(flock(fd, LOCK_EX), 0)
+        let lock = RouterLock(directory: dir)
+        let returned = expectation(description: "acquire returned")
+        DispatchQueue.global().async {
+            _ = try? lock.acquire()
+            returned.fulfill()
+        }
+        Thread.sleep(forTimeInterval: 0.3)
+        XCTAssertNil(lock.holder(), "acquire wrote the lock while another router held the guard")
+        flock(fd, LOCK_UN)
+        close(fd)
+        wait(for: [returned], timeout: 5)
+        XCTAssertNotNil(lock.holder(), "acquire never completed once the guard was free")
+    }
+
     /// The CLI and the app have to refuse each other's locks, not just parse them. This drives the real
     /// chat.py helpers against the real Swift lock in one directory.
     func testTheCLIAndTheAppRefuseEachOthersLocks() throws {

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import contextlib
 import datetime as dt
 import fcntl
 import json
@@ -326,7 +327,23 @@ def router_lock_holder(cdir: pathlib.Path) -> dict | None:
     return h
 
 
+@contextlib.contextmanager
+def router_guard(cdir: pathlib.Path):
+    """Short cross-process critical section, also used by the native app."""
+    with open(cdir / "router.guard", "a") as guard:
+        fcntl.flock(guard, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(guard, fcntl.LOCK_UN)
+
+
 def acquire_router_lock(cdir: pathlib.Path) -> None:
+    with router_guard(cdir):
+        _acquire_router_lock(cdir)
+
+
+def _acquire_router_lock(cdir: pathlib.Path) -> None:
     """Take the router lock or exit. Two routers on one chat would prompt every member twice."""
     held = router_lock_holder(cdir)
     if held and held.get("pid") != os.getpid():
@@ -340,6 +357,11 @@ def acquire_router_lock(cdir: pathlib.Path) -> None:
 
 def release_router_lock(cdir: pathlib.Path) -> None:
     """Remove our own lock; never someone else's."""
+    with router_guard(cdir):
+        _release_router_lock(cdir)
+
+
+def _release_router_lock(cdir: pathlib.Path) -> None:
     held = router_lock_holder(cdir)
     if held and held.get("pid") == os.getpid():
         try:
